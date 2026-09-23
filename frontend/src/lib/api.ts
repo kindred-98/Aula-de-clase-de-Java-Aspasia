@@ -10,22 +10,93 @@ export class ApiError extends Error {
   }
 }
 
+const ACCESS_KEY = "aula.access_token";
+const REFRESH_KEY = "aula.refresh_token";
+const MUST_CHANGE_KEY = "aula.must_change";
+
+export function getAccessToken(): string | null {
+  return localStorage.getItem(ACCESS_KEY);
+}
+
+export function mustChangeCredentials(): boolean {
+  return localStorage.getItem(MUST_CHANGE_KEY) === "1";
+}
+
+export function setSession(tokens: {
+  access_token: string;
+  refresh_token: string;
+  must_change_credentials: boolean;
+}): void {
+  localStorage.setItem(ACCESS_KEY, tokens.access_token);
+  localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
+  localStorage.setItem(MUST_CHANGE_KEY, tokens.must_change_credentials ? "1" : "0");
+}
+
+export function clearSession(): void {
+  localStorage.removeItem(ACCESS_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+  localStorage.removeItem(MUST_CHANGE_KEY);
+}
+
+async function parseError(response: Response): Promise<string> {
+  let detail = response.statusText || "Error";
+  try {
+    const body = (await response.json()) as { detail?: string | { msg?: string }[] };
+    if (typeof body.detail === "string") detail = body.detail;
+    else if (Array.isArray(body.detail))
+      detail = body.detail.map((d) => d.msg ?? "invalid").join("; ");
+  } catch {
+    // sin cuerpo JSON
+  }
+  return detail;
+}
+
 export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(`${BASE}${path}`, {
-    headers: { Accept: "application/json" },
+    headers,
     credentials: "include",
     signal,
   });
-  if (!response.ok) {
-    let detail = response.statusText;
-    try {
-      const body = (await response.json()) as { detail?: string };
-      if (body.detail) detail = body.detail;
-    } catch {
-      // respuesta sin cuerpo JSON
-    }
-    throw new ApiError(response.status, detail);
-  }
+  if (!response.ok) throw new ApiError(response.status, await parseError(response));
+  return (await response.json()) as T;
+}
+
+export async function apiSend<T>(
+  method: "POST" | "PATCH" | "DELETE",
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const response = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    credentials: "include",
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (response.status === 204) return undefined as T;
+  if (!response.ok) throw new ApiError(response.status, await parseError(response));
+  return (await response.json()) as T;
+}
+
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const headers: Record<string, string> = {};
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: form,
+  });
+  if (!response.ok) throw new ApiError(response.status, await parseError(response));
   return (await response.json()) as T;
 }
 
@@ -34,4 +105,103 @@ export type HealthPayload = {
   app: string;
   version: string;
   time: string;
+};
+
+export type TokenPayload = {
+  access_token: string;
+  token_type: string;
+  refresh_token: string;
+  must_change_credentials: boolean;
+};
+
+export type CoursePublic = {
+  id: number;
+  name: string;
+  description: string | null;
+  code: string;
+  status: string;
+  layout_rows: number;
+  layout_cols: number;
+  settings: Record<string, unknown>;
+  created_at: string;
+};
+
+export type ClassroomSeat = {
+  seat_id: number;
+  row: number;
+  col: number;
+  enrollment_id: number | null;
+  student_id: number | null;
+  student_name: string | null;
+  student_username: string | null;
+  status: string | null;
+};
+
+export type ClassroomPayload = {
+  course: CoursePublic;
+  seats: ClassroomSeat[];
+  rows: number;
+  cols: number;
+  teachers: { id: number; name: string }[];
+};
+
+export type AssignmentPublic = {
+  id: number;
+  course_id: number;
+  section_id: number | null;
+  title: string;
+  description_markdown: string;
+  due_at: string | null;
+  max_score: string;
+  visibility: string;
+  created_by: number;
+  created_at: string;
+};
+
+export type EvaluationPublic = {
+  id: number;
+  submission_id: number;
+  teacher_id: number;
+  score: string | null;
+  rubric_scores: Record<string, unknown>;
+  comment_markdown: string;
+  created_at: string;
+};
+
+export type SubmissionFilePublic = {
+  id: number;
+  original_name: string;
+  mime: string;
+  size_bytes: number;
+  sha256: string;
+};
+
+export type SubmissionPublic = {
+  id: number;
+  assignment_id: number | null;
+  course_id: number;
+  student_id: number;
+  github_url: string | null;
+  notes: string;
+  status: string;
+  submitted_at: string | null;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  files: SubmissionFilePublic[];
+  latest_evaluation: EvaluationPublic | null;
+  evaluations: EvaluationPublic[];
+  student_name: string | null;
+};
+
+export type EnrollmentPublic = {
+  id: number;
+  course_id: number;
+  student_id: number;
+  seat_id: number | null;
+  status: string;
+  student_name: string | null;
+  student_username: string | null;
+  seat_row: number | null;
+  seat_col: number | null;
 };
