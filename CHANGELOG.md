@@ -2,6 +2,57 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase 2] — 2026-09-23
+
+### Hecho
+
+- Backend:
+  - Secciones de curso: CRUD (`/courses/{id}/sections`), slug único por curso
+    (409), `kind` content|external, Markdown y URL externa.
+  - Anuncios: CRUD (`/courses/{id}/announcements`) con autor y auditoría.
+  - Tareas: `GET/PATCH/DELETE /assignments/{id}`, `due_at`, `max_score`,
+    `visibility` (private|class), reentrega con `version` en submissions.
+  - Panel admin (`/admin/*`, solo `require_admin`):
+    - Listado/búsqueda de usuarios con filtro por rol.
+    - Activar/desactivar cuentas (audit `user.status_changed`).
+    - Reset de PIN de estudiante (PIN de 6 dígitos, se devuelve una sola vez,
+      audit `pin.reset` sin PIN en claro).
+    - Importación CSV de estudiantes por curso (`name[,email][,username]`),
+      PINs generados en lote, matrícula automática, audit
+      `students.imported`.
+    - AuditLog con filtros por `action`, `course_id`, `actor_id`.
+    - Métricas por curso: matrículas y entregas por estado.
+  - `GET /auth/me` → `UserPublic` (rol para UI admin/staff).
+  - Tests: 68 tests, cobertura **87 %** (mínimo 80 %); ruff + mypy en verde.
+- Frontend (Fase 2):
+  - `Markdown` seguro (sin HTML del usuario): títulos, listas, negrita,
+    cursiva, código inline y bloques, enlaces http(s).
+  - Contenido del curso (`/courses/:id/content`): sidebar de secciones,
+    vista de sección (content/external) y anuncios; formularios de creación
+    para staff.
+  - Detalle de tarea (`/courses/:id/work/:assignmentId`): fecha límite,
+    visibilidad, máximo, edición (staff) de título/descripción/due_at/
+    visibility/max_score.
+  - Lista de tareas en WorkPage con enlace al detalle y badge de atrasada.
+  - Panel admin (`/admin`): pestañas Usuarios (búsqueda, activar/desactivar,
+    reset PIN), Importar CSV, Audit log (filtro action) y Métricas por curso.
+  - `AuthContext` carga `/auth/me`; nav muestra enlace Admin solo a admins.
+  - Tests: 11 (rutas, login, secciones, detalle tarea, admin) + lint/format/
+    typecheck/build en verde.
+- Verificación local:
+  - `alembic upgrade head` sobre SQLite (`3a38236975b6` → `2b87aadf33ae`).
+  - TestClient: `GET /health` y `/api/v1/health` → 200.
+  - Backend: ruff, mypy, pytest+cov 87 %. Frontend: eslint, prettier, tsc,
+    vitest (11), vite build.
+
+### Pendiente / limitaciones
+
+- Docker/PostgreSQL no disponibles en esta máquina (CI + compose).
+- Asistencia, calendario, GitHub metadata, clonar cursos, export CSV y
+  rúbricas: Fase 3.
+- Código de secciones/temas del curso en menú lateral ampliable (hoy
+  Contenido desde el aula).
+
 ## [Fase 1] — 2026-09-23
 
 ### Hecho
