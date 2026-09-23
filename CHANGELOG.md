@@ -2,6 +2,44 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase 1] — 2026-09-23
+
+### Hecho
+
+- Backend:
+  - Auth completa: login estudiante (course_code + identifier + PIN), login
+    staff (email + password), refresh con rotación, logout, cambio obligatorio
+    de credenciales (`must_change_credentials`).
+  - Rate-limit de login fallido (5 intentos / 15 min → 429) vía `audit_logs`.
+  - Políticas de permisos centralizadas en `app/security/policies.py`
+    (admin / teacher-of-course / enrolled / peer visibility).
+  - Cursos: CRUD, seats, matrículas, asignación de profesorado, vista de aula
+    (classroom grid con estado de entrega por asiento).
+  - Trabajo académico: assignments, submissions (draft/submit), archivos
+    (validación extensión + magic bytes), evaluaciones (historial append-only).
+  - Storage local con API abstracta (preparada S3).
+  - Migración `2b87aadf33ae` (añade `users.username`).
+  - Scripts: `seed_demo` (curso JAVA 3×5, 15 estudiantes con PIN, profe) y
+    `create_admin`.
+  - Tests: 57 tests, cobertura **86 %** (mínimo 80 %); ruff + mypy en verde.
+- Frontend (Fase 1):
+  - Contexto de sesión (access token en localStorage, refresh cookie).
+  - Login (estudiante / personal), cambio de credenciales obligatorio.
+  - Lista de cursos, vista de aula (cuadrícula con estados de entrega),
+    workspace de estudiante (entregas + GitHub + archivos) y vista de
+    evaluación de la profesora.
+  - Rutas protegidas (`RequireAuth` + redirect a `/change-credentials`).
+  - Tests: 7 (rutas, login success/error) + lint/format/typecheck/build.
+- Verificación local:
+  - `alembic upgrade head` sobre SQLite.
+  - uvicorn + `GET /health` → 200; login staff + `GET /courses` → 200.
+  - `seed_demo` + `create_admin` ejecutados sobre SQLite local.
+
+### Pendiente / limitaciones
+
+- Docker/PostgreSQL no disponibles en esta máquina (CI + compose).
+- Announcements, attendance y secciones de contenido: Fase 2+.
+
 ## [Fase 0] — 2026-09-23
 
 ### Hecho
