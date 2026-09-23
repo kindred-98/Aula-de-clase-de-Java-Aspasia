@@ -53,12 +53,20 @@ export function ClassroomPage() {
             {data.teachers.map((t) => t.name).join(", ") || "sin profesorado"}
           </p>
         </div>
-        <Link
-          to={`/courses/${courseId}/work`}
-          className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
-        >
-          Ir a entregas
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/courses/${courseId}/content`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
+          >
+            Contenido
+          </Link>
+          <Link
+            to={`/courses/${courseId}/work`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
+          >
+            Ir a entregas
+          </Link>
+        </div>
       </div>
 
       <div

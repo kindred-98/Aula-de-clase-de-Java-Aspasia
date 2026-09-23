@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   apiGet,
   apiSend,
@@ -9,12 +9,14 @@ import {
   type AssignmentPublic,
   type SubmissionPublic,
 } from "../../lib/api";
+import { Markdown } from "../../components/content/Markdown";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Spinner } from "../../components/ui/Spinner";
 
 export function WorkPage() {
   const courseId = useParams().courseId ?? "";
   const queryClient = useQueryClient();
+  const [now] = useState(() => Date.now());
   const [githubUrl, setGithubUrl] = useState("");
   const [notes, setNotes] = useState("");
   const [activeAssignment, setActiveAssignment] = useState<number | null>(null);
@@ -79,7 +81,58 @@ export function WorkPage() {
         <p className="mt-1 text-sm text-muted">
           Crea o actualiza tu entrega con enlace de GitHub, notas y archivos.
         </p>
+        <div className="mt-2 flex flex-wrap gap-3 text-sm">
+          <Link to={`/courses/${courseId}/content`} className="text-primary hover:underline">
+            Contenido del curso
+          </Link>
+        </div>
       </div>
+
+      <article className="rounded-lg border border-border bg-surface p-4">
+        <h2 className="font-semibold">Tareas del curso</h2>
+        {assignments.isPending ? <Spinner label="Cargando tareas" /> : null}
+        {assignments.isError ? (
+          <div className="mt-2">
+            <ErrorState message="No se pudieron cargar las tareas" />
+          </div>
+        ) : null}
+        {assignments.isSuccess && assignments.data.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No hay tareas todavía.</p>
+        ) : null}
+        {assignments.isSuccess && assignments.data.length > 0 ? (
+          <ul className="mt-3 space-y-2">
+            {assignments.data.map((a) => {
+              const overdue = a.due_at ? new Date(a.due_at).getTime() < now : false;
+              return (
+                <li key={a.id} className="rounded-md border border-border p-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <Link
+                      to={`/courses/${courseId}/work/${a.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      {a.title}
+                    </Link>
+                    <span className={`text-xs ${overdue ? "text-danger" : "text-muted"}`}>
+                      {a.due_at
+                        ? `${overdue ? "Atrasada · " : ""}${new Date(a.due_at).toLocaleString()}`
+                        : "Sin fecha límite"}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted">
+                    <span>visibilidad: {a.visibility}</span>
+                    <span>máx. {a.max_score}</span>
+                  </div>
+                  {a.description_markdown ? (
+                    <div className="mt-2 text-sm opacity-90">
+                      <Markdown source={a.description_markdown.slice(0, 240)} />
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </article>
 
       <article className="rounded-lg border border-border bg-surface p-4">
         <h2 className="font-semibold">Nueva / actualizar entrega</h2>

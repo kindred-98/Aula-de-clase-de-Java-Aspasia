@@ -1,10 +1,19 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { apiSend, clearSession, setSession, type TokenPayload } from "../../lib/api";
+import {
+  apiGet,
+  apiSend,
+  clearSession,
+  getAccessToken,
+  setSession,
+  type TokenPayload,
+  type UserPublic,
+} from "../../lib/api";
 
 type AuthState = {
   isAuthenticated: boolean;
   mustChange: boolean;
+  user: UserPublic | null;
   loginStudent: (input: {
     course_code: string;
     identifier: string;
@@ -27,6 +36,24 @@ function initialAuth(): { isAuthenticated: boolean; mustChange: boolean } {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState(initialAuth);
+  const [user, setUser] = useState<UserPublic | null>(null);
+
+  useEffect(() => {
+    if (!state.isAuthenticated || state.mustChange || !getAccessToken()) {
+      return;
+    }
+    let cancelled = false;
+    void apiGet<UserPublic>("/auth/me")
+      .then((profile) => {
+        if (!cancelled) setUser(profile);
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [state.isAuthenticated, state.mustChange]);
 
   const loginStudent = useCallback(
     async (input: { course_code: string; identifier: string; pin: string }) => {
@@ -57,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     void apiSend("POST", "/auth/logout", {}).catch(() => undefined);
     clearSession();
+    setUser(null);
     setState({ isAuthenticated: false, mustChange: false });
   }, []);
 
@@ -64,12 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       isAuthenticated: state.isAuthenticated,
       mustChange: state.mustChange,
+      user,
       loginStudent,
       loginStaff,
       changeCredentials,
       logout,
     }),
-    [state.isAuthenticated, state.mustChange, loginStudent, loginStaff, changeCredentials, logout],
+    [
+      state.isAuthenticated,
+      state.mustChange,
+      user,
+      loginStudent,
+      loginStaff,
+      changeCredentials,
+      logout,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

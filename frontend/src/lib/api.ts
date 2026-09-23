@@ -205,3 +205,64 @@ export type EnrollmentPublic = {
   seat_row: number | null;
   seat_col: number | null;
 };
+
+export type SectionKind = "content" | "external";
+
+export type SectionPublic = {
+  id: number;
+  course_id: number;
+  title: string;
+  slug: string;
+  order: number;
+  kind: SectionKind;
+  body_markdown: string | null;
+  external_url: string | null;
+};
+
+export type AnnouncementPublic = {
+  id: number;
+  course_id: number;
+  author_id: number;
+  title: string;
+  body_markdown: string;
+  created_at: string;
+  author_name: string | null;
+};
+
+export type UserPublic = {
+  id: number;
+  name: string;
+  email: string | null;
+  username: string | null;
+  role: "admin" | "teacher" | "student";
+  is_active: boolean;
+  must_change_credentials: boolean;
+  created_at: string;
+};
+
+export type AdminUserPublic = UserPublic;
+
+export type PinResetResponse = {
+  user_id: number;
+  pin: string;
+  must_change_credentials: boolean;
+};
+
+export type CsvImportResult = {
+  created: number;
+  skipped: number;
+  pins: Record<string, string>;
+};
+
+export type AuditLogPublic = {
+  id: number;
+  actor_id: number | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  course_id: number | null;
+  payload: Record<string, unknown>;
+  ip: string | null;
+  created_at: string;
+  actor_name: string | null;
+};

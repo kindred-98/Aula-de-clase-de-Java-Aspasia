@@ -7,8 +7,11 @@ import { ChangeCredentialsPage } from "../features/auth/ChangeCredentialsPage";
 import { useAuth } from "../features/auth/AuthContext";
 import { CourseListPage } from "../features/courses/CourseListPage";
 import { ClassroomPage } from "../features/courses/ClassroomPage";
+import { ContentPage } from "../features/content/ContentPage";
 import { WorkPage } from "../features/work/WorkPage";
+import { AssignmentDetailPage } from "../features/work/AssignmentDetailPage";
 import { EvaluatePage } from "../features/work/EvaluatePage";
+import { AdminPage } from "../features/admin/AdminPage";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -16,6 +19,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
   if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location }} />;
   if (mustChange) return <Navigate to="/change-credentials" replace />;
+  return children;
+}
+
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (user && user.role !== "admin") return <Navigate to="/" replace />;
   return children;
 }
 
@@ -50,6 +59,14 @@ export function AppRoutes() {
           }
         />
         <Route
+          path="/courses/:courseId/content"
+          element={
+            <RequireAuth>
+              <ContentPage />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/courses/:courseId/work"
           element={
             <RequireAuth>
@@ -58,10 +75,28 @@ export function AppRoutes() {
           }
         />
         <Route
+          path="/courses/:courseId/work/:assignmentId"
+          element={
+            <RequireAuth>
+              <AssignmentDetailPage />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/courses/:courseId/evaluate"
           element={
             <RequireAuth>
               <EvaluatePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth>
+              <RequireAdmin>
+                <AdminPage />
+              </RequireAdmin>
             </RequireAuth>
           }
         />

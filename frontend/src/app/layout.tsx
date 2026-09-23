@@ -4,7 +4,8 @@ import { useAuth } from "../features/auth/AuthContext";
 
 export function AppLayout() {
   const { theme, toggle } = useTheme();
-  const { isAuthenticated, mustChange, logout } = useAuth();
+  const { isAuthenticated, mustChange, logout, user } = useAuth();
+  const isAdmin = user?.role === "admin";
 
   return (
     <div className="min-h-screen bg-bg text-text">
@@ -24,6 +25,16 @@ export function AppLayout() {
                 >
                   Cursos
                 </NavLink>
+                {isAdmin ? (
+                  <NavLink
+                    to="/admin"
+                    className={({ isActive }) =>
+                      isActive ? "text-primary underline" : "text-muted hover:text-text"
+                    }
+                  >
+                    Admin
+                  </NavLink>
+                ) : null}
                 <button
                   type="button"
                   onClick={logout}
