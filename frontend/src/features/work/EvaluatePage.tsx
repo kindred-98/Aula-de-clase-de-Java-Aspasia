@@ -2,9 +2,11 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
-import { apiGet, apiSend, type SubmissionPublic } from "../../lib/api";
+import { apiGet, apiSend, type RubricPublic, type SubmissionPublic } from "../../lib/api";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Spinner } from "../../components/ui/Spinner";
+import { showToast } from "../../components/ui/Toast";
+import { GithubMetaPanel } from "./GithubMetaPanel";
 
 export function EvaluatePage() {
   const courseId = useParams().courseId ?? "";
@@ -12,6 +14,8 @@ export function EvaluatePage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [score, setScore] = useState("");
   const [comment, setComment] = useState("");
+  const [rubricScores, setRubricScores] = useState<Record<string, string>>({});
+  const [rubricId, setRubricId] = useState("");
 
   const submissions = useQuery({
     queryKey: ["all-submissions", courseId],
@@ -19,25 +23,49 @@ export function EvaluatePage() {
     enabled: Boolean(courseId),
   });
 
+  const rubrics = useQuery({
+    queryKey: ["rubrics", courseId],
+    queryFn: ({ signal }) => apiGet<RubricPublic[]>(`/courses/${courseId}/rubrics`, signal),
+    enabled: Boolean(courseId),
+  });
+
   const evaluate = useMutation({
-    mutationFn: (payload: { score: number | null; comment_markdown: string }) =>
-      apiSend("POST", `/submissions/${selectedId}/evaluations`, payload),
+    mutationFn: (payload: {
+      score: number | null;
+      comment_markdown: string;
+      rubric_scores?: Record<string, number>;
+    }) => apiSend("POST", `/submissions/${selectedId}/evaluations`, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["all-submissions", courseId] });
       setScore("");
       setComment("");
+      setRubricScores({});
+      showToast("Evaluación guardada");
+    },
+    onError: (error) => {
+      showToast(error instanceof Error ? error.message : "No se pudo evaluar", "error");
     },
   });
 
   const rows = submissions.data ?? [];
   const selected = rows.find((s) => s.id === selectedId) ?? null;
+  const activeRubric =
+    (rubrics.data ?? []).find((r) => String(r.id) === rubricId) ?? rubrics.data?.[0] ?? null;
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (selectedId == null) return;
+    const mapped: Record<string, number> = {};
+    if (activeRubric) {
+      for (const c of activeRubric.criteria) {
+        const raw = rubricScores[c.id];
+        if (raw != null && raw !== "") mapped[c.id] = Number(raw);
+      }
+    }
     evaluate.mutate({
       score: score === "" ? null : Number(score),
       comment_markdown: comment,
+      ...(activeRubric && Object.keys(mapped).length > 0 ? { rubric_scores: mapped } : {}),
     });
   }
 
@@ -99,6 +127,21 @@ export function EvaluatePage() {
             <>
               <h2 className="font-semibold">{selected.student_name ?? "Estudiante"}</h2>
               <p className="mt-1 text-sm text-muted">{selected.notes || "Sin notas"}</p>
+              {selected.github_url ? (
+                <div className="mt-2">
+                  <a
+                    href={selected.github_url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {selected.github_url}
+                  </a>
+                  <div className="mt-2">
+                    <GithubMetaPanel submissionId={selected.id} />
+                  </div>
+                </div>
+              ) : null}
               {selected.files.length > 0 ? (
                 <ul className="mt-2 space-y-1 text-xs">
                   {selected.files.map((f) => (
@@ -115,6 +158,47 @@ export function EvaluatePage() {
                 </p>
               ) : null}
               <form onSubmit={onSubmit} className="mt-4 space-y-3">
+                {(rubrics.data ?? []).length > 0 ? (
+                  <label className="block space-y-1 text-sm">
+                    <span className="text-muted">Rúbrica</span>
+                    <select
+                      className={inputClass}
+                      value={rubricId || String(rubrics.data?.[0]?.id ?? "")}
+                      onChange={(e) => setRubricId(e.target.value)}
+                    >
+                      {(rubrics.data ?? []).map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+
+                {activeRubric ? (
+                  <fieldset className="space-y-2 rounded border border-border p-2">
+                    <legend className="px-1 text-xs text-muted">Criterios</legend>
+                    {activeRubric.criteria.map((c) => (
+                      <label key={c.id} className="block space-y-1 text-sm">
+                        <span className="text-muted">
+                          {c.label} (0–{c.max})
+                        </span>
+                        <input
+                          className={inputClass}
+                          type="number"
+                          min={0}
+                          max={c.max}
+                          step="0.01"
+                          value={rubricScores[c.id] ?? ""}
+                          onChange={(e) =>
+                            setRubricScores((prev) => ({ ...prev, [c.id]: e.target.value }))
+                          }
+                        />
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : null}
+
                 <label className="block space-y-1 text-sm">
                   <span className="text-muted">Puntuación (0–100)</span>
                   <input

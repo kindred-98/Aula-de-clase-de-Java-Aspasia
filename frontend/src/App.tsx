@@ -3,6 +3,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AppRoutes } from "./app/routes";
 import { ThemeProvider } from "./app/theme";
 import { AuthProvider } from "./features/auth/AuthContext";
+import { ToastViewport } from "./components/ui/Toast";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,7 @@ export function App() {
         <BrowserRouter>
           <AuthProvider>
             <AppRoutes />
+            <ToastViewport />
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

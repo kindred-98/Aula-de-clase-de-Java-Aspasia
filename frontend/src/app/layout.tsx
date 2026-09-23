@@ -25,6 +25,14 @@ export function AppLayout() {
                 >
                   Cursos
                 </NavLink>
+                <NavLink
+                  to="/account/privacy"
+                  className={({ isActive }) =>
+                    isActive ? "text-primary underline" : "text-muted hover:text-text"
+                  }
+                >
+                  Privacidad
+                </NavLink>
                 {isAdmin ? (
                   <NavLink
                     to="/admin"

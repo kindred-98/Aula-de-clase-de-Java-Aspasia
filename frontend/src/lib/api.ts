@@ -65,7 +65,7 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
 }
 
 export async function apiSend<T>(
-  method: "POST" | "PATCH" | "DELETE",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   body?: unknown,
 ): Promise<T> {
@@ -154,6 +154,7 @@ export type AssignmentPublic = {
   due_at: string | null;
   max_score: string;
   visibility: string;
+  rubric_id: number | null;
   created_by: number;
   created_at: string;
 };
@@ -266,3 +267,96 @@ export type AuditLogPublic = {
   created_at: string;
   actor_name: string | null;
 };
+
+export type RubricCriterion = {
+  id: string;
+  label: string;
+  max: number;
+};
+
+export type RubricPublic = {
+  id: number;
+  course_id: number;
+  title: string;
+  criteria: RubricCriterion[];
+  created_by: number;
+  created_at: string;
+};
+
+export type AttendanceStatus = "present" | "late" | "absent" | "excused";
+
+export type AttendanceRecordPublic = {
+  id: number;
+  course_id: number;
+  student_id: number;
+  date: string;
+  status: AttendanceStatus;
+  student_name: string | null;
+  student_username: string | null;
+  seat_row: number | null;
+  seat_col: number | null;
+};
+
+export type AttendanceDayResponse = {
+  date: string;
+  records: AttendanceRecordPublic[];
+};
+
+export type AttendanceSummaryItem = {
+  student_id: number;
+  student_name: string | null;
+  student_username: string | null;
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+};
+
+export type CalendarEvent = {
+  kind: "assignment" | "announcement";
+  id: number;
+  title: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  body_markdown: string | null;
+};
+
+export type GithubMetaResponse = {
+  url: string;
+  full_name: string | null;
+  description: string | null;
+  language: string | null;
+  default_branch: string | null;
+  stars: number | null;
+  pushed_at: string | null;
+  html_url: string | null;
+  cached: boolean;
+  ok: boolean;
+  error: string | null;
+};
+
+export type RgpdExportResponse = {
+  user: Record<string, unknown>;
+  enrollments: unknown[];
+  submissions: unknown[];
+  evaluations: unknown[];
+  attendance: unknown[];
+  exported_at: string;
+};
+
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const headers: Record<string, string> = {};
+  const token = getAccessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`${BASE}${path}`, { headers, credentials: "include" });
+  if (!response.ok) throw new ApiError(response.status, await parseError(response));
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}

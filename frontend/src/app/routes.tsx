@@ -12,6 +12,10 @@ import { WorkPage } from "../features/work/WorkPage";
 import { AssignmentDetailPage } from "../features/work/AssignmentDetailPage";
 import { EvaluatePage } from "../features/work/EvaluatePage";
 import { AdminPage } from "../features/admin/AdminPage";
+import { AttendancePage } from "../features/attendance/AttendancePage";
+import { CalendarPage } from "../features/calendar/CalendarPage";
+import { RubricsPage } from "../features/rubrics/RubricsPage";
+import { AccountPrivacyPage } from "../features/account/AccountPrivacyPage";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -87,6 +91,38 @@ export function AppRoutes() {
           element={
             <RequireAuth>
               <EvaluatePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/courses/:courseId/attendance"
+          element={
+            <RequireAuth>
+              <AttendancePage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/courses/:courseId/calendar"
+          element={
+            <RequireAuth>
+              <CalendarPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/courses/:courseId/rubrics"
+          element={
+            <RequireAuth>
+              <RubricsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/account/privacy"
+          element={
+            <RequireAuth>
+              <AccountPrivacyPage />
             </RequireAuth>
           }
         />

@@ -66,6 +66,24 @@ export function ClassroomPage() {
           >
             Ir a entregas
           </Link>
+          <Link
+            to={`/courses/${courseId}/calendar`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
+          >
+            Calendario
+          </Link>
+          <Link
+            to={`/courses/${courseId}/attendance`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
+          >
+            Asistencia
+          </Link>
+          <Link
+            to={`/courses/${courseId}/rubrics`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
+          >
+            Rúbricas
+          </Link>
         </div>
       </div>
 
