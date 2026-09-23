@@ -45,6 +45,7 @@ def test_all_tables_created() -> None:
         "announcements",
         "attendance_records",
         "audit_logs",
+        "rubrics",
     }
     session.close()
 

@@ -18,6 +18,7 @@ from app.models import (
     Enrollment,
     EnrollmentStatus,
     Evaluation,
+    Rubric,
     Submission,
     SubmissionFile,
     SubmissionStatus,
@@ -136,9 +137,14 @@ def create_assignment(
         )
         if link is None:
             raise HTTPException(status_code=404, detail="Course not found")
+    if body.rubric_id is not None:
+        rubric = db.get(Rubric, body.rubric_id)
+        if rubric is None or rubric.course_id != course.id:
+            raise HTTPException(status_code=404, detail="Rubric not found")
     assignment = Assignment(
         course_id=course.id,
         section_id=body.section_id,
+        rubric_id=body.rubric_id,
         title=body.title,
         description_markdown=body.description_markdown,
         due_at=body.due_at,
@@ -207,6 +213,10 @@ def update_assignment(
         raise HTTPException(status_code=404, detail="Assignment not found")
     _assert_teacher_of(db, user, assignment.course_id)
     data = body.model_dump(exclude_unset=True)
+    if body.rubric_id is not None:
+        rubric = db.get(Rubric, body.rubric_id)
+        if rubric is None or rubric.course_id != assignment.course_id:
+            raise HTTPException(status_code=404, detail="Rubric not found")
     for key, value in data.items():
         setattr(assignment, key, value)
     db.commit()

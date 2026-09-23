@@ -78,6 +78,7 @@ class AssignmentCreate(BaseModel):
     max_score: Decimal = Field(default=Decimal("100.00"), gt=0)
     visibility: Visibility = Visibility.private
     section_id: int | None = None
+    rubric_id: int | None = None
 
 
 class AssignmentUpdate(BaseModel):
@@ -87,6 +88,7 @@ class AssignmentUpdate(BaseModel):
     max_score: Decimal | None = Field(default=None, gt=0)
     visibility: Visibility | None = None
     section_id: int | None = None
+    rubric_id: int | None = None
 
 
 class AssignmentPublic(BaseModel):
@@ -95,6 +97,7 @@ class AssignmentPublic(BaseModel):
     id: int
     course_id: int
     section_id: int | None
+    rubric_id: int | None = None
     title: str
     description_markdown: str
     due_at: datetime | None

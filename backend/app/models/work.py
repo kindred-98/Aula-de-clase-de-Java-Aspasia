@@ -58,6 +58,11 @@ class Assignment(Base):
         nullable=True,
         index=True,
     )
+    rubric_id: Mapped[int | None] = mapped_column(
+        ForeignKey("rubrics.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description_markdown: Mapped[str] = mapped_column(Text, nullable=False, default="")
     due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
@@ -66,6 +71,37 @@ class Assignment(Base):
     )
     visibility: Mapped[Visibility] = mapped_column(
         nullable=False, default=Visibility.private, index=True
+    )
+    created_by: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    course: Mapped["Course"] = relationship(lazy="joined")
+    rubric: Mapped["Rubric | None"] = relationship(lazy="joined")
+
+
+class Rubric(Base):
+    """Plantilla de criterios de evaluación por curso (Fase 3)."""
+
+    __tablename__ = "rubrics"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    course_id: Mapped[int] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    # [{ "id": "c1", "label": "Correctitud", "max": 40 }, ...]
+    criteria: Mapped[list[dict[str, Any]]] = mapped_column(
+        JsonType, nullable=False, default=list, server_default="[]"
     )
     created_by: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"),

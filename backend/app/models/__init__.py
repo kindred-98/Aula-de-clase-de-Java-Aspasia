@@ -15,6 +15,7 @@ from app.models.user import RefreshToken, User, UserRole
 from app.models.work import (
     Assignment,
     Evaluation,
+    Rubric,
     Submission,
     SubmissionFile,
     SubmissionStatus,
@@ -34,6 +35,7 @@ __all__ = [
     "EnrollmentStatus",
     "Evaluation",
     "RefreshToken",
+    "Rubric",
     "Seat",
     "Section",
     "SectionKind",
