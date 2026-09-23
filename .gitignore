@@ -26,9 +26,9 @@ frontend/dist/
 # Datos locales / subidas
 *.db
 *.sqlite3
-backend/uploads/
-storage/
-media/
+/backend/uploads/
+/backend/storage/
+/media/
 
 # IDE / SO
 .idea/
