@@ -53,10 +53,15 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
     (`3a38236975b6` → `2b87aadf33ae` → `c4f1a90e2b7d`).
   - Frontend: eslint, prettier, tsc, vitest (17), vite build.
   - TestClient: `GET /health` y `/api/v1/health` → 200.
+  - Smoke en vivo sobre `demo_phase3.db` (seed + admin + migraciones):
+    **27/27 checks OK** (login staff/estudiante, rúbricas, asistencia, CSV,
+    clonar, RGPD, calendario, GitHub meta, cambios de PIN, aislamiento 403).
 
 ### Pendiente / limitaciones
 
-- Docker/PostgreSQL no disponibles en esta máquina (CI + compose).
+- Docker/PostgreSQL no disponibles en esta máquina (CI + compose); el arranque
+  en vivo de uvicorn+vite se validó con TestClient (sandbox no mantiene
+  procesos en segundo plano).
 - Metadatos GitHub reales dependen de red; en tests se cubre el parser y la
   degradación.
 - Métricas de tasa de entrega avanzadas y UX/a11y finos pueden ampliarse en

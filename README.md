@@ -81,9 +81,14 @@ cd frontend && npm run lint && npm run format:check
 
 ## Primer admin
 
-> En la Fase 1 se incluirá `python -m scripts.create_admin` para crear el
-> primer administrador (email + contraseña). Los PINs de estudiantes los
-> genera el admin desde el panel (se muestran una sola vez).
+```bash
+cd backend
+# Variables (o usar .env): AULA_ADMIN_EMAIL / AULA_ADMIN_PASSWORD
+python -m scripts.create_admin
+```
+
+Los PINs de estudiantes los genera el admin desde el panel (se muestran una
+sola vez) o con `python -m scripts.seed_demo` para el curso de demostración.
 
 ## Migraciones
 
