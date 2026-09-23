@@ -2,6 +2,66 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase 3] — 2026-09-24
+
+### Hecho
+
+- Backend:
+  - Rúbricas: tabla `rubrics` + `assignments.rubric_id` (migración
+    `c4f1a90e2b7d`, FK `SET NULL`, `batch_alter_table` compatible SQLite);
+    CRUD `/courses/{id}/rubrics` con auditoría `rubric.*` y validación de
+    curso al enlazar tareas.
+  - Asistencia: `GET/PUT /courses/{id}/attendance` (upsert por día),
+    `GET .../attendance/summary`; solo staff del curso; 404 si el alumno no
+    está matriculado.
+  - Calendario: `GET /courses/{id}/calendar` (tareas con `due_at` + anuncios
+    ordenados); requiere matrícula.
+  - Clonar curso (admin): `POST /courses/{id}/clone` copia seats, profesores,
+    secciones, rúbricas, tareas y 20 anuncios (no enrollments/submissions);
+    409 si `code` duplicado.
+  - Export CSV: `GET /courses/{id}/export/grades.csv` (staff) con
+    `Content-Disposition: attachment`.
+  - Metadatos GitHub: `GET /submissions/{id}/github-meta` con caché en memoria
+    TTL 300 s, timeout 3 s, degradación sin 500 si falla la API.
+  - RGPD: `GET /me/export` (datos personales + entregas + evaluaciones +
+    asistencia); `DELETE /me/data` (estudiante se autoanonimiza);
+    `DELETE /admin/users/{id}/data` (admin, no a sí mismo → 400).
+  - Tests: suite Fase 3 (`tests/test_phase3.py`) + `test_models` actualizado
+    con tabla `rubrics`; ruff + mypy + pytest+cov en verde; `alembic upgrade
+    head` verificado sobre SQLite.
+- Frontend (Fase 3):
+  - Tipos API nuevos (`RubricPublic`, `Attendance*`, `CalendarEvent`,
+    `GithubMetaResponse`, `RgpdExportResponse`, `apiDownload` con `PUT`).
+  - Asistencia (`/courses/:id/attendance`): pasada de lista por asiento con
+    estados (presente/tarde/ausente/justificada), acciones masivas y resumen
+    por estudiante.
+  - Calendario (`/courses/:id/calendar`): eventos de tareas y anuncios con
+    enlace a la tarea.
+  - Rúbricas (`/courses/:id/rubrics`): CRUD con criterios (id, label, max) y
+    confirmación de borrado.
+  - Evaluación: selector de rúbrica + puntuación por criterio; panel de
+    metadatos GitHub (`GithubMetaPanel`) degradable.
+  - Cuenta y privacidad (`/account/privacy`): exportar datos RGPD en JSON,
+    borrar datos con confirmación; admin: exportar notas CSV y clonar curso.
+  - Nav: enlace Privacidad; aula: enlaces a Calendario, Asistencia y Rúbricas.
+  - `Toast`/`ConfirmDialog` con `aria-live` y `role=alertdialog`; `ToastViewport`
+    montado en `App`.
+  - Tests: 17 (asistencia, calendario, rúbricas, privacidad, más la suite
+    Fase 1–2); lint/format/typecheck/build en verde.
+- Verificación local:
+  - Backend: ruff, mypy, pytest+cov; `alembic upgrade head` SQLite
+    (`3a38236975b6` → `2b87aadf33ae` → `c4f1a90e2b7d`).
+  - Frontend: eslint, prettier, tsc, vitest (17), vite build.
+  - TestClient: `GET /health` y `/api/v1/health` → 200.
+
+### Pendiente / limitaciones
+
+- Docker/PostgreSQL no disponibles en esta máquina (CI + compose).
+- Metadatos GitHub reales dependen de red; en tests se cubre el parser y la
+  degradación.
+- Métricas de tasa de entrega avanzadas y UX/a11y finos pueden ampliarse en
+  iteraciones futuras.
+
 ## [Fase 2] — 2026-09-23
 
 ### Hecho
