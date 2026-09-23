@@ -27,6 +27,7 @@ from app.models import (
 from app.schemas.work import (
     AssignmentCreate,
     AssignmentPublic,
+    AssignmentUpdate,
     EvaluationCreate,
     EvaluationPublic,
     SubmissionCreate,
@@ -162,11 +163,77 @@ def list_assignments(
     rows = db.scalars(
         select(Assignment).where(Assignment.course_id == course.id).order_by(Assignment.id.desc())
     ).all()
-    if user.role is UserRole.student:
-        # Solo ve private si es suya... en fase 1: ve todas las del curso matriculado
-        # (la matriz de pares aplica a submissions, no al listado de tareas)
-        return [AssignmentPublic.model_validate(a) for a in rows]
     return [AssignmentPublic.model_validate(a) for a in rows]
+
+
+@router.get("/assignments/{assignment_id}", response_model=AssignmentPublic)
+def get_assignment(
+    assignment_id: int,
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> AssignmentPublic:
+    assignment = db.get(Assignment, assignment_id)
+    if assignment is None:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    _assert_enrolled(db, user, assignment.course_id)
+    return AssignmentPublic.model_validate(assignment)
+
+
+def _assert_teacher_of(db: Session, user: User, course_id: int) -> Course:
+    course = _get_course(db, course_id)
+    if user.role is UserRole.student:
+        raise HTTPException(status_code=403, detail="Teacher access required")
+    if user.role is UserRole.teacher:
+        link = db.scalar(
+            select(CourseTeacher).where(
+                CourseTeacher.course_id == course.id,
+                CourseTeacher.teacher_id == user.id,
+            )
+        )
+        if link is None:
+            raise HTTPException(status_code=404, detail="Course not found")
+    return course
+
+
+@router.patch("/assignments/{assignment_id}", response_model=AssignmentPublic)
+def update_assignment(
+    assignment_id: int,
+    body: AssignmentUpdate,
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> AssignmentPublic:
+    assignment = db.get(Assignment, assignment_id)
+    if assignment is None:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    _assert_teacher_of(db, user, assignment.course_id)
+    data = body.model_dump(exclude_unset=True)
+    for key, value in data.items():
+        setattr(assignment, key, value)
+    db.commit()
+    db.refresh(assignment)
+    return AssignmentPublic.model_validate(assignment)
+
+
+@router.delete("/assignments/{assignment_id}", status_code=204)
+def delete_assignment(
+    assignment_id: int,
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> None:
+    assignment = db.get(Assignment, assignment_id)
+    if assignment is None:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    _assert_teacher_of(db, user, assignment.course_id)
+    log_action(
+        db,
+        action="assignment.deleted",
+        actor_id=user.id,
+        entity_type="assignment",
+        entity_id=assignment.id,
+        course_id=assignment.course_id,
+    )
+    db.delete(assignment)
+    db.commit()
 
 
 # ---- Submissions ----

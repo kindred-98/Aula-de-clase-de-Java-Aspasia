@@ -13,7 +13,12 @@ from app.schemas.auth import (
     TokenResponse,
     UserPublic,
 )
-from app.security.policies import CurrentUserWithPendingChange, DbSession, current_user_from_token
+from app.security.policies import (
+    CurrentUser,
+    CurrentUserWithPendingChange,
+    DbSession,
+    current_user_from_token,
+)
 from app.services import auth_service
 from app.services.auth_service import REFRESH_COOKIE_PATH, AuthError
 
@@ -125,6 +130,14 @@ def logout(
     response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
+
+
+@router.get("/me", response_model=UserPublic)
+def me(user: Annotated[object, Depends(CurrentUser)]) -> UserPublic:
+    from app.models import User
+
+    assert isinstance(user, User)
+    return UserPublic.model_validate(user)
 
 
 @router.patch("/change-credentials", response_model=UserPublic)

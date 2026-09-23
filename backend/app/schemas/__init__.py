@@ -1,5 +1,14 @@
 """Esquemas Pydantic."""
 
+from app.schemas.admin import (
+    AdminUserPublic,
+    AuditLogPublic,
+    CsvImportRequest,
+    CsvImportResult,
+    PinResetRequest,
+    PinResetResponse,
+    UserStatusUpdate,
+)
 from app.schemas.auth import (
     ChangeCredentialsRequest,
     LoginStaffRequest,
@@ -10,6 +19,14 @@ from app.schemas.auth import (
     UserPublic,
 )
 from app.schemas.common import ErrorDetail, HealthResponse
+from app.schemas.content import (
+    AnnouncementCreate,
+    AnnouncementPublic,
+    AnnouncementUpdate,
+    SectionCreate,
+    SectionPublic,
+    SectionUpdate,
+)
 from app.schemas.course import (
     ClassroomResponse,
     ClassroomSeat,
@@ -24,6 +41,7 @@ from app.schemas.course import (
 from app.schemas.work import (
     AssignmentCreate,
     AssignmentPublic,
+    AssignmentUpdate,
     EvaluationCreate,
     EvaluationPublic,
     SubmissionCreate,
@@ -33,14 +51,22 @@ from app.schemas.work import (
 )
 
 __all__ = [
+    "AdminUserPublic",
+    "AnnouncementCreate",
+    "AnnouncementPublic",
+    "AnnouncementUpdate",
     "AssignmentCreate",
     "AssignmentPublic",
+    "AssignmentUpdate",
+    "AuditLogPublic",
     "ChangeCredentialsRequest",
     "ClassroomResponse",
     "ClassroomSeat",
     "CourseCreate",
     "CoursePublic",
     "CourseUpdate",
+    "CsvImportRequest",
+    "CsvImportResult",
     "EnrollmentCreate",
     "EnrollmentPublic",
     "ErrorDetail",
@@ -50,13 +76,19 @@ __all__ = [
     "LoginStaffRequest",
     "LoginStudentRequest",
     "LogoutRequest",
+    "PinResetRequest",
+    "PinResetResponse",
     "RefreshRequest",
     "SeatAssign",
     "SeatPublic",
+    "SectionCreate",
+    "SectionPublic",
+    "SectionUpdate",
     "SubmissionCreate",
     "SubmissionFilePublic",
     "SubmissionPublic",
     "SubmissionUpdate",
     "TokenResponse",
     "UserPublic",
+    "UserStatusUpdate",
 ]

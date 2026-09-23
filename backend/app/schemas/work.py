@@ -80,6 +80,15 @@ class AssignmentCreate(BaseModel):
     section_id: int | None = None
 
 
+class AssignmentUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    description_markdown: str | None = None
+    due_at: datetime | None = None
+    max_score: Decimal | None = Field(default=None, gt=0)
+    visibility: Visibility | None = None
+    section_id: int | None = None
+
+
 class AssignmentPublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

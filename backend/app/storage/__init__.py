@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import secrets
 from abc import ABC, abstractmethod
@@ -11,7 +12,20 @@ from typing import BinaryIO
 from app.core.config import settings
 
 ALLOWED_EXTENSIONS = frozenset(
-    {".java", ".zip", ".pdf", ".txt", ".md", ".png", ".jpg", ".jpeg", ".html", ".css", ".js", ".json"}
+    {
+        ".java",
+        ".zip",
+        ".pdf",
+        ".txt",
+        ".md",
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".html",
+        ".css",
+        ".js",
+        ".json",
+    }
 )
 
 # Firmas binarias mínimas para validar tipo real (no solo extensión)
@@ -117,11 +131,9 @@ class LocalStorage(Storage):
 
     def delete(self, stored_name: str) -> None:
         path = self.root / Path(stored_name).name
-        try:
+        with contextlib.suppress(OSError):
+            # Windows: archivo aún bloqueado por un stream; best-effort
             path.unlink(missing_ok=True)
-        except OSError:
-            # Windows: archivo aún bloqueado por un stream; el intento es best-effort
-            pass
 
 
 class S3Storage(Storage):
@@ -130,7 +142,9 @@ class S3Storage(Storage):
     def __init__(self) -> None:
         raise StorageError("S3 storage not configured yet", 501)  # pragma: no cover
 
-    def save(self, data: bytes, *, original_name: str) -> tuple[str, str, int, str]:  # pragma: no cover
+    def save(
+        self, data: bytes, *, original_name: str
+    ) -> tuple[str, str, int, str]:  # pragma: no cover
         raise NotImplementedError
 
     def open(self, stored_name: str) -> BinaryIO:  # pragma: no cover
