@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+
+# Node
+node_modules/
+frontend/dist/
+.vite/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Datos locales / subidas
+*.db
+*.sqlite3
+backend/uploads/
+storage/
+media/
+
+# IDE / SO
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Herramientas
+.qodo/
+coverage/
+*.log
