@@ -1,9 +1,9 @@
-"""Fase T1: dashboard agregado del profesor."""
+"""Fase T1: dashboard agregado del profesor. Fase T2: cola de evaluación."""
 
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -19,8 +19,12 @@ from app.models import (
     UserRole,
 )
 from app.schemas.teacher import (
+    PendingCount,
     TeacherDashboard,
     TeacherDashboardCourse,
+    TeacherQueueItem,
+    TeacherQueuePage,
+    TeacherQueueStatus,
     TeacherRecentItem,
     TeacherTotals,
     TeacherUpcomingItem,
@@ -47,13 +51,17 @@ def _my_course_ids(db: Session, user: User) -> list[int]:
     return sorted({int(cid) for cid in rows})
 
 
+def _assert_teacher(user: User) -> None:
+    if user.role not in (UserRole.teacher, UserRole.admin):
+        raise HTTPException(status_code=403, detail="Teacher access required")
+
+
 @router.get("/dashboard", response_model=TeacherDashboard)
 def teacher_dashboard(
     db: DbSession,
     user: Annotated[User, Depends(CurrentUser)],
 ) -> TeacherDashboard:
-    if user.role not in (UserRole.teacher, UserRole.admin):
-        raise HTTPException(status_code=403, detail="Teacher access required")
+    _assert_teacher(user)
 
     course_ids = _my_course_ids(db, user)
     if not course_ids:
@@ -174,3 +182,99 @@ def teacher_dashboard(
     )
 
     return TeacherDashboard(totals=totals, courses=course_items, upcoming=upcoming, recent=recent)
+
+
+@router.get("/queue", response_model=TeacherQueuePage)
+def teacher_queue(
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+    course_id: int | None = None,
+    status: TeacherQueueStatus | None = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+) -> TeacherQueuePage:
+    _assert_teacher(user)
+
+    course_ids = _my_course_ids(db, user)
+    if course_id is not None:
+        if course_id not in course_ids:
+            raise HTTPException(status_code=404, detail="Course not found")
+        course_ids = [course_id]
+    if not course_ids:
+        return TeacherQueuePage(page=page, page_size=page_size)
+
+    statuses = [SubmissionStatus(status)] if status else PENDING_STATUSES
+
+    total = int(
+        db.scalar(
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.course_id.in_(course_ids),
+                Submission.status.in_(statuses),
+            )
+        )
+        or 0
+    )
+
+    rows = db.execute(
+        select(
+            Submission,
+            Course.name,
+            Assignment.title,
+            Assignment.due_at,
+            User.name,
+        )
+        .join(Course, Submission.course_id == Course.id)
+        .outerjoin(Assignment, Submission.assignment_id == Assignment.id)
+        .join(User, Submission.student_id == User.id)
+        .where(
+            Submission.course_id.in_(course_ids),
+            Submission.status.in_(statuses),
+        )
+        .order_by(Assignment.due_at.asc().nulls_last(), Submission.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+
+    items = [
+        TeacherQueueItem(
+            submission_id=sub.id,
+            course_id=int(sub.course_id),
+            course_name=cname,
+            assignment_id=int(sub.assignment_id) if sub.assignment_id is not None else None,
+            assignment_title=atitle,
+            student_id=int(sub.student_id),
+            student_name=sname,
+            status=str(sub.status.value),
+            submitted_at=sub.submitted_at,
+            due_at=_as_aware(due) if due is not None else None,
+        )
+        for sub, cname, atitle, due, sname in rows
+    ]
+
+    return TeacherQueuePage(items=items, total=total, page=page, page_size=page_size)
+
+
+@router.get("/pending-count", response_model=PendingCount)
+def teacher_pending_count(
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> PendingCount:
+    _assert_teacher(user)
+
+    course_ids = _my_course_ids(db, user)
+    if not course_ids:
+        return PendingCount()
+    pending = int(
+        db.scalar(
+            select(func.count())
+            .select_from(Submission)
+            .where(
+                Submission.course_id.in_(course_ids),
+                Submission.status.in_(PENDING_STATUSES),
+            )
+        )
+        or 0
+    )
+    return PendingCount(pending=pending)

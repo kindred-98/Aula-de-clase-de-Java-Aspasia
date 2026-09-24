@@ -89,6 +89,30 @@ function authAs(role: "teacher" | "student" | "admin") {
             ],
           }),
         );
+      if (url.includes("/teacher/pending-count")) return Promise.resolve(json({ pending: 2 }));
+      if (url.includes("/teacher/queue"))
+        return Promise.resolve(
+          json({
+            items: [
+              {
+                submission_id: 5,
+                course_id: 1,
+                course_name: "Java",
+                assignment_id: 9,
+                assignment_title: "Tarea 9",
+                student_id: 2,
+                student_name: "Ana",
+                status: "submitted",
+                submitted_at: "2026-09-24T10:00:00Z",
+                due_at: "2026-10-01T10:00:00Z",
+              },
+            ],
+            total: 1,
+            page: 1,
+            page_size: 20,
+          }),
+        );
+      if (url.includes("/me/courses")) return Promise.resolve(json([]));
       return Promise.resolve(json({ total: 0 }));
     }),
   );
@@ -123,12 +147,14 @@ describe("Fase T0 — estructura del panel del profesor", () => {
     expect(screen.getByText("Tarea 9")).toBeInTheDocument();
   });
 
-  it("la cola de evaluación responde en /teacher/queue", async () => {
+  it("la cola de evaluación lista entregas en /teacher/queue", async () => {
     authAs("teacher");
     renderRoutes(["/teacher/queue"]);
 
     expect(await screen.findByRole("heading", { name: /cola de evaluación/i })).toBeInTheDocument();
-    expect(screen.getByText(/fase t2/i)).toBeInTheDocument();
+    expect(await screen.findByText("Ana")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /evaluar/i })).toBeInTheDocument();
+    expect(await screen.findByLabelText(/entregas por revisar/i)).toBeInTheDocument();
   });
 
   it("un student es redirigido fuera del panel", async () => {

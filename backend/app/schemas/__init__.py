@@ -98,8 +98,11 @@ from app.schemas.scale import (
     UnlockResult,
 )
 from app.schemas.teacher import (
+    PendingCount,
     TeacherDashboard,
     TeacherDashboardCourse,
+    TeacherQueueItem,
+    TeacherQueuePage,
     TeacherRecentItem,
     TeacherTotals,
     TeacherUpcomingItem,
@@ -181,6 +184,7 @@ __all__ = [
     "MultiCourseDashboard",
     "ObserverResponse",
     "ObserverSubmissionRow",
+    "PendingCount",
     "PermissionCatalog",
     "PinResetRequest",
     "PinResetResponse",
@@ -205,6 +209,8 @@ __all__ = [
     "SubmissionUpdate",
     "TeacherDashboard",
     "TeacherDashboardCourse",
+    "TeacherQueueItem",
+    "TeacherQueuePage",
     "TeacherRecentItem",
     "TeacherTotals",
     "TeacherUpcomingItem",

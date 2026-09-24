@@ -677,6 +677,30 @@ export type TeacherDashboard = {
   recent: TeacherRecentItem[];
 };
 
+export type TeacherQueueItem = {
+  submission_id: number;
+  course_id: number;
+  course_name: string;
+  assignment_id: number | null;
+  assignment_title: string | null;
+  student_id: number;
+  student_name: string;
+  status: string;
+  submitted_at: string | null;
+  due_at: string | null;
+};
+
+export type TeacherQueuePage = {
+  items: TeacherQueueItem[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type PendingCount = {
+  pending: number;
+};
+
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const headers: Record<string, string> = {};
   const token = getAccessToken();
