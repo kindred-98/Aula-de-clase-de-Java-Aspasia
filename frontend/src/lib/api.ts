@@ -701,6 +701,61 @@ export type PendingCount = {
   pending: number;
 };
 
+export type CourseAssignmentStat = {
+  assignment_id: number;
+  title: string;
+  submitted: number;
+  total: number;
+  pct: number;
+};
+
+export type CourseStudentStat = {
+  student_id: number;
+  name: string;
+  submitted: number;
+  pending: number;
+  last_score: number | null;
+  attendance_pct: number | null;
+};
+
+export type CourseOverview = {
+  course_id: number;
+  course_name: string;
+  assignment_stats: CourseAssignmentStat[];
+  student_stats: CourseStudentStat[];
+};
+
+export type StudentSubmissionRow = {
+  submission_id: number;
+  assignment_id: number | null;
+  assignment_title: string | null;
+  status: string;
+  submitted_at: string | null;
+  score: number | null;
+  evaluated_at: string | null;
+};
+
+export type StudentAttendance = {
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  pct: number | null;
+};
+
+export type StudentCourseDetail = {
+  student_id: number;
+  name: string;
+  username: string | null;
+  course_id: number;
+  course_name: string;
+  submitted: number;
+  pending: number;
+  average_score: number | null;
+  attendance: StudentAttendance;
+  submissions: StudentSubmissionRow[];
+};
+
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const headers: Record<string, string> = {};
   const token = getAccessToken();

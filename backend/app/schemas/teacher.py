@@ -74,3 +74,58 @@ class PendingCount(BaseModel):
 
 
 TeacherQueueStatus = Literal["submitted", "needs_changes"]
+
+
+class CourseAssignmentStat(BaseModel):
+    assignment_id: int
+    title: str
+    submitted: int = 0
+    total: int = 0
+    pct: float = 0.0
+
+
+class CourseStudentStat(BaseModel):
+    student_id: int
+    name: str
+    submitted: int = 0
+    pending: int = 0
+    last_score: float | None = None
+    attendance_pct: float | None = None
+
+
+class CourseOverview(BaseModel):
+    course_id: int
+    course_name: str
+    assignment_stats: list[CourseAssignmentStat] = []
+    student_stats: list[CourseStudentStat] = []
+
+
+class StudentSubmissionRow(BaseModel):
+    submission_id: int
+    assignment_id: int | None = None
+    assignment_title: str | None = None
+    status: str
+    submitted_at: datetime | None = None
+    score: float | None = None
+    evaluated_at: datetime | None = None
+
+
+class StudentAttendance(BaseModel):
+    present: int = 0
+    late: int = 0
+    absent: int = 0
+    excused: int = 0
+    pct: float | None = None
+
+
+class StudentCourseDetail(BaseModel):
+    student_id: int
+    name: str
+    username: str | None = None
+    course_id: int
+    course_name: str
+    submitted: int = 0
+    pending: int = 0
+    average_score: float | None = None
+    attendance: StudentAttendance = StudentAttendance()
+    submissions: list[StudentSubmissionRow] = []

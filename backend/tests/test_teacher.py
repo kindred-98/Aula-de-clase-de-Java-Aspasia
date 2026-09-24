@@ -1,14 +1,21 @@
-"""Fase T1: dashboard del profesor. Fase T2: cola de evaluación."""
+"""Fase T1: dashboard del profesor. Fase T2: cola. Fase T3: panel de curso y ficha."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import Assignment, Submission, SubmissionStatus
+from app.models import (
+    Assignment,
+    AttendanceRecord,
+    AttendanceStatus,
+    Evaluation,
+    Submission,
+    SubmissionStatus,
+)
 from tests.api_helpers import (
     assign_teacher,
     auth_headers,
@@ -254,3 +261,131 @@ def test_pending_count_and_forbidden(client: TestClient, db: Session) -> None:
 
     for path in ("/api/v1/teacher/queue", "/api/v1/teacher/pending-count"):
         assert client.get(path, headers=auth_headers(student)).status_code == 403
+
+
+def test_course_overview_and_student_detail(client: TestClient, db: Session) -> None:
+    teacher = make_teacher(db, email="t3-profe@aula.test")
+    ana = make_student(db, name="Ana", username="t3-ana")
+    bol = make_student(db, name="Bol", username="t3-bol")
+
+    course = make_course(db, code="T3C1")
+    assign_teacher(db, course, teacher)
+    enroll(db, course, ana)
+    enroll(db, course, bol)
+
+    a1 = _seed_assignment(db, course, teacher, title="Tarea A")
+    _seed_assignment(db, course, teacher, title="Tarea B")
+
+    sub = Submission(
+        assignment_id=a1.id,
+        course_id=course.id,
+        student_id=ana.id,
+        status=SubmissionStatus.reviewed,
+        submitted_at=datetime.now(UTC),
+    )
+    db.add(sub)
+    db.flush()
+    db.add(Evaluation(submission_id=sub.id, teacher_id=teacher.id, score=Decimal("87.50")))
+    db.add(
+        AttendanceRecord(
+            course_id=course.id,
+            student_id=ana.id,
+            date=date(2026, 9, 1),
+            status=AttendanceStatus.present,
+        )
+    )
+    db.add(
+        AttendanceRecord(
+            course_id=course.id,
+            student_id=ana.id,
+            date=date(2026, 9, 2),
+            status=AttendanceStatus.absent,
+        )
+    )
+    db.commit()
+
+    resp = client.get(f"/api/v1/courses/{course.id}/overview", headers=auth_headers(teacher))
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert data["course_name"] == "Java"
+    assert [a["title"] for a in data["assignment_stats"]] == ["Tarea A", "Tarea B"]
+    assert data["assignment_stats"][0]["submitted"] == 1
+    assert data["assignment_stats"][0]["total"] == 2
+    assert data["assignment_stats"][0]["pct"] == 50.0
+    assert data["assignment_stats"][1]["submitted"] == 0
+    assert data["assignment_stats"][1]["pct"] == 0.0
+
+    by_name = {s["name"]: s for s in data["student_stats"]}
+    assert by_name["Ana"]["submitted"] == 1
+    assert by_name["Ana"]["pending"] == 1
+    assert by_name["Ana"]["last_score"] == 87.5
+    assert by_name["Ana"]["attendance_pct"] == 50.0
+    assert by_name["Bol"]["submitted"] == 0
+    assert by_name["Bol"]["pending"] == 2
+    assert by_name["Bol"]["last_score"] is None
+    assert by_name["Bol"]["attendance_pct"] is None
+
+    detail = client.get(
+        f"/api/v1/courses/{course.id}/students/{ana.id}",
+        headers=auth_headers(teacher),
+    )
+    assert detail.status_code == 200, detail.text
+    ficha = detail.json()
+    assert ficha["student_id"] == ana.id
+    assert ficha["name"] == "Ana"
+    assert ficha["course_name"] == "Java"
+    assert ficha["submitted"] == 1
+    assert ficha["pending"] == 1
+    assert ficha["average_score"] == 87.5
+    assert ficha["attendance"]["present"] == 1
+    assert ficha["attendance"]["absent"] == 1
+    assert ficha["attendance"]["pct"] == 50.0
+    assert len(ficha["submissions"]) == 1
+    assert ficha["submissions"][0]["assignment_title"] == "Tarea A"
+    assert ficha["submissions"][0]["status"] == "reviewed"
+    assert ficha["submissions"][0]["score"] == 87.5
+    assert ficha["submissions"][0]["evaluated_at"] is not None
+
+    admin_headers = auth_headers(make_admin(db, email="t3-admin@aula.test"))
+    assert (
+        client.get(f"/api/v1/courses/{course.id}/overview", headers=admin_headers).status_code
+        == 200
+    )
+
+    missing_student = client.get(
+        f"/api/v1/courses/{course.id}/students/999999",
+        headers=auth_headers(teacher),
+    )
+    assert missing_student.status_code == 404
+
+
+def test_course_overview_forbidden_and_isolated(client: TestClient, db: Session) -> None:
+    teacher = make_teacher(db, email="t3b-profe@aula.test")
+    outsider = make_teacher(db, name="Otra", email="t3b-otra@aula.test")
+    student = make_student(db, name="Ana", username="t3b-ana")
+
+    course = make_course(db, code="T3BC1")
+    assign_teacher(db, course, teacher)
+    other = make_course(db, code="T3BC2")
+    assign_teacher(db, other, outsider)
+    enroll(db, course, student)
+    _seed_assignment(db, course, teacher)
+
+    overview = client.get(f"/api/v1/courses/{course.id}/overview", headers=auth_headers(student))
+    assert overview.status_code == 403
+    detail = client.get(
+        f"/api/v1/courses/{course.id}/students/{student.id}",
+        headers=auth_headers(student),
+    )
+    assert detail.status_code == 403
+
+    foreign = client.get(f"/api/v1/courses/{other.id}/overview", headers=auth_headers(teacher))
+    assert foreign.status_code == 404
+    foreign_detail = client.get(
+        f"/api/v1/courses/{other.id}/students/{student.id}",
+        headers=auth_headers(teacher),
+    )
+    assert foreign_detail.status_code == 404
+
+    empty = client.get(f"/api/v1/courses/{course.id}/overview", headers=auth_headers(outsider))
+    assert empty.status_code == 404

@@ -90,6 +90,51 @@ function authAs(role: "teacher" | "student" | "admin") {
           }),
         );
       if (url.includes("/teacher/pending-count")) return Promise.resolve(json({ pending: 2 }));
+      if (url.includes("/courses/1/overview"))
+        return Promise.resolve(
+          json({
+            course_id: 1,
+            course_name: "Java",
+            assignment_stats: [
+              { assignment_id: 9, title: "Tarea 9", submitted: 5, total: 10, pct: 50 },
+            ],
+            student_stats: [
+              {
+                student_id: 2,
+                name: "Ana",
+                submitted: 3,
+                pending: 1,
+                last_score: 87.5,
+                attendance_pct: 90,
+              },
+            ],
+          }),
+        );
+      if (url.includes("/courses/1/students/2"))
+        return Promise.resolve(
+          json({
+            student_id: 2,
+            name: "Ana",
+            username: "ana",
+            course_id: 1,
+            course_name: "Java",
+            submitted: 3,
+            pending: 1,
+            average_score: 87.5,
+            attendance: { present: 9, late: 1, absent: 1, excused: 0, pct: 90.9 },
+            submissions: [
+              {
+                submission_id: 5,
+                assignment_id: 9,
+                assignment_title: "Tarea 9",
+                status: "reviewed",
+                submitted_at: "2026-09-24T10:00:00Z",
+                score: 87.5,
+                evaluated_at: "2026-09-25T10:00:00Z",
+              },
+            ],
+          }),
+        );
       if (url.includes("/teacher/queue"))
         return Promise.resolve(
           json({
@@ -155,6 +200,32 @@ describe("Fase T0 — estructura del panel del profesor", () => {
     expect(await screen.findByText("Ana")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /evaluar/i })).toBeInTheDocument();
     expect(await screen.findByLabelText(/entregas por revisar/i)).toBeInTheDocument();
+  });
+
+  it("el panel de curso muestra progreso de tareas y alumnos", async () => {
+    authAs("teacher");
+    renderRoutes(["/teacher/courses/1"]);
+
+    expect(await screen.findByRole("heading", { name: "Java" })).toBeInTheDocument();
+    expect(screen.getByText("Tarea 9")).toBeInTheDocument();
+    expect(screen.getByText(/5\/10 entregas/)).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Ana/ })).toBeInTheDocument();
+    expect(screen.getByText("3 entregadas")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Notas/ })).toBeInTheDocument();
+  });
+
+  it("la ficha del alumno muestra media, asistencia y entregas", async () => {
+    authAs("teacher");
+    renderRoutes(["/teacher/courses/1/students/2"]);
+
+    expect(await screen.findByRole("heading", { name: "Ana" })).toBeInTheDocument();
+    expect(screen.getByText("Nota media")).toBeInTheDocument();
+    expect(screen.getByText("87.5")).toBeInTheDocument();
+    expect(screen.getByText("90.9%")).toBeInTheDocument();
+    expect(screen.getByText("Tarea 9")).toBeInTheDocument();
+    expect(screen.getByText("Revisado")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /volver al curso/i })).toBeInTheDocument();
   });
 
   it("un student es redirigido fuera del panel", async () => {

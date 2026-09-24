@@ -1,5 +1,6 @@
 """Endpoints de cursos, asientos, matrículas y vista de aula."""
 
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -7,6 +8,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
+    Assignment,
+    AttendanceRecord,
     Course,
     CourseTeacher,
     Enrollment,
@@ -27,6 +30,14 @@ from app.schemas.course import (
     EnrollmentPublic,
     SeatAssign,
     SeatPublic,
+)
+from app.schemas.teacher import (
+    CourseAssignmentStat,
+    CourseOverview,
+    CourseStudentStat,
+    StudentAttendance,
+    StudentCourseDetail,
+    StudentSubmissionRow,
 )
 from app.security.policies import (
     CurrentUser,
@@ -427,3 +438,189 @@ def my_courses(
     user: Annotated[User, Depends(CurrentUser)],
 ) -> list[CoursePublic]:
     return list_courses(db, user)
+
+
+def _attendance_counts(db: Session, course_id: int) -> dict[int, dict[str, int]]:
+    rows = db.execute(
+        select(
+            AttendanceRecord.student_id,
+            AttendanceRecord.status,
+            func.count(),
+        )
+        .where(AttendanceRecord.course_id == course_id)
+        .group_by(AttendanceRecord.student_id, AttendanceRecord.status)
+    ).all()
+    out: dict[int, dict[str, int]] = {}
+    for sid, status, cnt in rows:
+        bucket = out.setdefault(int(sid), {"present": 0, "late": 0, "absent": 0, "excused": 0})
+        bucket[str(status)] += int(cnt)
+    return out
+
+
+def _attendance_pct(counts: dict[str, int]) -> float | None:
+    total = sum(counts.values())
+    if total == 0:
+        return None
+    attended = counts.get("present", 0) + counts.get("late", 0)
+    return round(attended / total * 100, 1)
+
+
+@router.get("/courses/{course_id}/overview", response_model=CourseOverview)
+def course_overview(
+    course_id: int,
+    db: DbSession,
+    _staff: Annotated[tuple[User, Course], Depends(require_staff_of_course)],
+) -> CourseOverview:
+    _user, course = _staff
+
+    assignments = db.scalars(
+        select(Assignment).where(Assignment.course_id == course.id).order_by(Assignment.id)
+    ).all()
+    enrollments = db.scalars(
+        select(Enrollment)
+        .where(
+            Enrollment.course_id == course.id,
+            Enrollment.status == EnrollmentStatus.active,
+        )
+        .order_by(Enrollment.id)
+    ).all()
+    submissions = db.scalars(select(Submission).where(Submission.course_id == course.id)).all()
+    att_counts = _attendance_counts(db, course.id)
+
+    delivered_by_assignment: dict[int, set[int]] = {}
+    delivered_by_student: dict[int, set[int]] = {}
+    last_score: dict[int, float] = {}
+    last_eval_at: dict[int, datetime] = {}
+    for sub in submissions:
+        if sub.status is not SubmissionStatus.draft and sub.assignment_id is not None:
+            delivered_by_assignment.setdefault(sub.assignment_id, set()).add(sub.student_id)
+            delivered_by_student.setdefault(sub.student_id, set()).add(sub.assignment_id)
+        if sub.evaluations:
+            ev = sub.evaluations[0]
+            if ev.score is None:
+                continue
+            prev = last_eval_at.get(sub.student_id)
+            if prev is None or ev.created_at > prev:
+                last_eval_at[sub.student_id] = ev.created_at
+                last_score[sub.student_id] = float(ev.score)
+
+    total_students = len(enrollments)
+    assignment_stats = [
+        CourseAssignmentStat(
+            assignment_id=a.id,
+            title=a.title,
+            submitted=len(delivered_by_assignment.get(a.id, set())),
+            total=total_students,
+            pct=(
+                round(len(delivered_by_assignment.get(a.id, set())) / total_students * 100, 1)
+                if total_students
+                else 0.0
+            ),
+        )
+        for a in assignments
+    ]
+
+    assignment_total = len(assignments)
+    student_stats = []
+    for e in enrollments:
+        delivered = len(delivered_by_student.get(e.student_id, set()))
+        student_stats.append(
+            CourseStudentStat(
+                student_id=e.student_id,
+                name=e.student.name if e.student else str(e.student_id),
+                submitted=delivered,
+                pending=max(0, assignment_total - delivered),
+                last_score=last_score.get(e.student_id),
+                attendance_pct=_attendance_pct(att_counts.get(e.student_id, {})),
+            )
+        )
+
+    return CourseOverview(
+        course_id=course.id,
+        course_name=course.name,
+        assignment_stats=assignment_stats,
+        student_stats=student_stats,
+    )
+
+
+@router.get(
+    "/courses/{course_id}/students/{student_id}",
+    response_model=StudentCourseDetail,
+)
+def student_course_detail(
+    course_id: int,
+    student_id: int,
+    db: DbSession,
+    _staff: Annotated[tuple[User, Course], Depends(require_staff_of_course)],
+) -> StudentCourseDetail:
+    _user, course = _staff
+
+    enrollment = db.scalar(
+        select(Enrollment).where(
+            Enrollment.course_id == course.id,
+            Enrollment.student_id == student_id,
+        )
+    )
+    if enrollment is None or enrollment.student is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    student = enrollment.student
+
+    assignments = db.scalars(select(Assignment).where(Assignment.course_id == course.id)).all()
+    submissions = db.scalars(
+        select(Submission)
+        .where(
+            Submission.course_id == course.id,
+            Submission.student_id == student.id,
+        )
+        .order_by(Submission.id.desc())
+    ).all()
+
+    delivered: set[int] = set()
+    latest_by_assignment: dict[int, Submission] = {}
+    rows: list[StudentSubmissionRow] = []
+    for sub in submissions:
+        if sub.status is not SubmissionStatus.draft and sub.assignment_id is not None:
+            delivered.add(sub.assignment_id)
+        if sub.assignment_id is not None and sub.assignment_id not in latest_by_assignment:
+            latest_by_assignment[sub.assignment_id] = sub
+        ev = sub.evaluations[0] if sub.evaluations else None
+        score = float(ev.score) if ev is not None and ev.score is not None else None
+        rows.append(
+            StudentSubmissionRow(
+                submission_id=sub.id,
+                assignment_id=sub.assignment_id,
+                assignment_title=sub.assignment.title if sub.assignment else None,
+                status=sub.status.value,
+                submitted_at=sub.submitted_at,
+                score=score,
+                evaluated_at=ev.created_at if ev is not None else None,
+            )
+        )
+
+    scores: list[float] = []
+    for sub in latest_by_assignment.values():
+        if not sub.evaluations:
+            continue
+        ev = sub.evaluations[0]
+        if ev.score is not None:
+            scores.append(float(ev.score))
+    att = _attendance_counts(db, course.id).get(student.id, {})
+
+    return StudentCourseDetail(
+        student_id=student.id,
+        name=student.name,
+        username=student.username,
+        course_id=course.id,
+        course_name=course.name,
+        submitted=len(delivered),
+        pending=max(0, len(assignments) - len(delivered)),
+        average_score=round(sum(scores) / len(scores), 1) if scores else None,
+        attendance=StudentAttendance(
+            present=att.get("present", 0),
+            late=att.get("late", 0),
+            absent=att.get("absent", 0),
+            excused=att.get("excused", 0),
+            pct=_attendance_pct(att),
+        ),
+        submissions=rows,
+    )

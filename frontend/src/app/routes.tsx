@@ -32,6 +32,8 @@ import { AdminLayout } from "../features/admin/AdminLayout";
 import { TeacherLayout } from "../features/teacher/TeacherLayout";
 import { TeacherDashboardPage } from "../features/teacher/dashboard/TeacherDashboardPage";
 import { EvaluationQueuePage } from "../features/teacher/queue/EvaluationQueuePage";
+import { TeacherCourseOverviewPage } from "../features/teacher/course/TeacherCourseOverviewPage";
+import { StudentDetailPage } from "../features/teacher/course/StudentDetailPage";
 import { AdminDashboardPage } from "../features/admin/dashboard/AdminDashboardPage";
 import { AdminCoursesPage } from "../features/admin/courses/AdminCoursesPage";
 import { AdminCourseDetailPage } from "../features/admin/courses/AdminCourseDetailPage";
@@ -230,6 +232,8 @@ export function AppRoutes() {
         >
           <Route index element={<TeacherDashboardPage />} />
           <Route path="queue" element={<EvaluationQueuePage />} />
+          <Route path="courses/:courseId" element={<TeacherCourseOverviewPage />} />
+          <Route path="courses/:courseId/students/:studentId" element={<StudentDetailPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
