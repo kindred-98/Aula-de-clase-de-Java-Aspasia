@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { homePathAfterLogin } from "./homePath";
 import { ErrorState } from "../../components/ui/ErrorState";
 
 export function ChangeCredentialsPage() {
@@ -23,7 +24,7 @@ export function ChangeCredentialsPage() {
     setPending(true);
     try {
       await changeCredentials({ current_secret: current, new_secret: next });
-      navigate("/", { replace: true });
+      navigate(homePathAfterLogin(), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo actualizar.");
     } finally {

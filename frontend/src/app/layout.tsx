@@ -7,6 +7,7 @@ export function AppLayout() {
   const { theme, toggle } = useTheme();
   const { isAuthenticated, mustChange, logout, user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const isTeacher = user?.role === "teacher";
   const unread = useUnreadCount();
   const unreadTotal = unread.data?.total ?? 0;
 
@@ -68,6 +69,16 @@ export function AppLayout() {
                 >
                   Privacidad
                 </NavLink>
+                {isTeacher ? (
+                  <NavLink
+                    to="/teacher"
+                    className={({ isActive }) =>
+                      isActive ? "text-primary underline" : "text-muted hover:text-text"
+                    }
+                  >
+                    Panel
+                  </NavLink>
+                ) : null}
                 {isAdmin ? (
                   <NavLink
                     to="/admin"

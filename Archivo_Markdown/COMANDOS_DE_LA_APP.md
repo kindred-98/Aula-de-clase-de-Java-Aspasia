@@ -23,19 +23,35 @@
 
 ## 📑 Índice
 
-1. [Propósito de esta guía](#-propósito-de-esta-guía)
-2. [Requisitos previos](#-requisitos-previos)
-3. [Variables de entorno](#-variables-de-entorno)
-4. [Opción A — Arranque con Docker (recomendado)](#-opción-a--arranque-con-docker-recomendado)
-5. [Opción B — Arranque local sin Docker](#-opción-b--arranque-local-sin-docker)
-6. [Primer admin y seed de demo](#-primer-admin-y-seed-de-demo)
-7. [Migraciones de base de datos](#-migraciones-de-base-de-datos)
-8. [Tests y calidad de código](#-tests-y-calidad-de-código)
-9. [Comandos Makefile (resumen)](#-comandos-makefile-resumen)
-10. [Puertos y URLs](#-puertos-y-urls)
-11. [Flujos de acceso (credenciales)](#-flujos-de-acceso-credenciales)
-12. [Solución de problemas](#-solución-de-problemas)
-13. [Conclusión](#-conclusión)
+- [🚀 Guía de Comandos](#-guía-de-comandos)
+  - [📑 Índice](#-índice)
+  - [🎯 Propósito de esta guía](#-propósito-de-esta-guía)
+  - [📦 Requisitos previos](#-requisitos-previos)
+  - [🔐 Variables de entorno](#-variables-de-entorno)
+  - [🐳 Opción A — Arranque con Docker (recomendado)](#-opción-a--arranque-con-docker-recomendado)
+  - [💻 Opción B — Arranque local sin Docker](#-opción-b--arranque-local-sin-docker)
+    - [B1. Instalar dependencias](#b1-instalar-dependencias)
+    - [B2. Base de datos](#b2-base-de-datos)
+    - [B3. Migraciones](#b3-migraciones)
+    - [B4. Arrancar la app (2 terminales)](#b4-arrancar-la-app-2-terminales)
+  - [👤 Primer admin y seed de demo](#-primer-admin-y-seed-de-demo)
+    - [Crear el primer administrador](#crear-el-primer-administrador)
+    - [Seed de demostración (curso Java 3×5)](#seed-de-demostración-curso-java-35)
+    - [Panel admin tras el login](#panel-admin-tras-el-login)
+  - [🗄️ Migraciones de base de datos](#️-migraciones-de-base-de-datos)
+  - [🧪 Tests y calidad de código](#-tests-y-calidad-de-código)
+    - [Backend (pytest + ruff + mypy)](#backend-pytest--ruff--mypy)
+    - [Frontend (eslint + prettier + vitest + build)](#frontend-eslint--prettier--vitest--build)
+    - [Makefile (atajos)](#makefile-atajos)
+    - [pre-commit (opcional, recomendado)](#pre-commit-opcional-recomendado)
+    - [CI (GitHub Actions)](#ci-github-actions)
+  - [🧰 Comandos Makefile (resumen)](#-comandos-makefile-resumen)
+  - [🔌 Puertos y URLs](#-puertos-y-urls)
+  - [🔑 Flujos de acceso (credenciales)](#-flujos-de-acceso-credenciales)
+    - [Estudiante (no se auto-registra)](#estudiante-no-se-auto-registra)
+    - [Personal (admin / profesora)](#personal-admin--profesora)
+  - [🧰 Solución de problemas](#-solución-de-problemas)
+  - [🏁 Conclusión](#-conclusión)
 
 ---
 
@@ -485,7 +501,8 @@ Login: email + contraseña  (pestaña "Personal")
 | Frontend no ve la API | uvicorn parado o proxy mal | Arranca backend en :8000; revisa `vite.config.ts` |
 | `Secret key too short` | `SECRET_KEY` débil | ≥32 caracteres aleatorios |
 | CORS error en navegador | Origen no listado | Añade `http://localhost:5173` a `CORS_ORIGINS` |
-| Migración no aplica en SQLite | FKs en alter | Se usa `batch_alter_table` (ya en la migración de rúbricas) |
+| Migración no aplica cd backend
+python -m venv .venven SQLite | FKs en alter | Se usa `batch_alter_table` (ya en la migración de rúbricas) |
 | `must_change_credentials` al usar seed | Diseño intencional | Cambia el PIN en el primer login |
 | PIN perdido (seed) | Solo se imprime una vez | Admin → **Reset de PIN** |
 | `docker compose` no encuentra servicios | No estás en la raíz | Ejecuta desde el directorio con `docker-compose.yml` |

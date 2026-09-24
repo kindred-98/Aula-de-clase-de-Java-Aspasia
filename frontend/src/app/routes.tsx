@@ -29,6 +29,9 @@ import { CohortsPage } from "../features/scale/CohortsPage";
 import { RolesPage } from "../features/scale/RolesPage";
 import { SessionsPage } from "../features/scale/SessionsPage";
 import { AdminLayout } from "../features/admin/AdminLayout";
+import { TeacherLayout } from "../features/teacher/TeacherLayout";
+import { TeacherDashboardPage } from "../features/teacher/dashboard/TeacherDashboardPage";
+import { EvaluationQueuePage } from "../features/teacher/queue/EvaluationQueuePage";
 import { AdminDashboardPage } from "../features/admin/dashboard/AdminDashboardPage";
 import { AdminCoursesPage } from "../features/admin/courses/AdminCoursesPage";
 import { AdminCourseDetailPage } from "../features/admin/courses/AdminCourseDetailPage";
@@ -50,6 +53,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   if (user && user.role !== "admin") return <Navigate to="/" replace />;
+  return children;
+}
+
+function RequireTeacher({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (user && user.role !== "teacher" && user.role !== "admin") return <Navigate to="/" replace />;
   return children;
 }
 
@@ -208,6 +217,19 @@ export function AppRoutes() {
           <Route path="cohorts" element={<CohortsPage />} />
           <Route path="roles" element={<RolesPage />} />
           <Route path="sessions" element={<SessionsPage />} />
+        </Route>
+        <Route
+          path="/teacher"
+          element={
+            <RequireAuth>
+              <RequireTeacher>
+                <TeacherLayout />
+              </RequireTeacher>
+            </RequireAuth>
+          }
+        >
+          <Route index element={<TeacherDashboardPage />} />
+          <Route path="queue" element={<EvaluationQueuePage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

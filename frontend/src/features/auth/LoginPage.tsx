@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { homePathAfterLogin } from "./homePath";
 import { ErrorState } from "../../components/ui/ErrorState";
 
 type Mode = "student" | "staff";
@@ -28,7 +29,7 @@ export function LoginPage() {
       } else {
         await loginStaff({ email: email.trim(), password });
       }
-      navigate("/", { replace: true });
+      navigate(homePathAfterLogin(), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo iniciar sesión.");
     } finally {
