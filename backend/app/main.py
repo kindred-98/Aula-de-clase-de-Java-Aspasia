@@ -52,6 +52,11 @@ def create_app() -> FastAPI:
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "same-origin")
+        if settings.environment == "production":
+            response.headers.setdefault(
+                "Content-Security-Policy",
+                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+            )
         return response
 
     app.include_router(api_router, prefix=settings.api_prefix)

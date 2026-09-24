@@ -2,6 +2,7 @@
 
 from datetime import UTC, datetime
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app import __version__
@@ -43,6 +44,25 @@ def test_security_headers() -> None:
         response = client.get("/health")
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["X-Frame-Options"] == "DENY"
+
+
+def test_no_csp_in_development() -> None:
+    with TestClient(app) as client:
+        response = client.get("/health")
+    assert "Content-Security-Policy" not in response.headers
+
+
+def test_csp_in_production(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app import main as main_module
+
+    monkeypatch.setattr(main_module, "settings", Settings(_env_file=None, environment="production"))
+    prod_app = main_module.create_app()
+    with TestClient(prod_app) as client:
+        response = client.get("/health", headers={"Host": "localhost"})
+    assert response.status_code == 200
+    csp = response.headers["Content-Security-Policy"]
+    assert "default-src 'none'" in csp
+    assert "frame-ancestors 'none'" in csp
 
 
 def test_utcnow_aware() -> None:
