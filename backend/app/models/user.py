@@ -11,6 +11,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.course import Enrollment
+    from app.models.scale import CustomRole
 
 
 class UserRole(StrEnum):
@@ -31,12 +32,18 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     must_change_credentials: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    custom_role_id: Mapped[int | None] = mapped_column(
+        ForeignKey("custom_roles.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
 
+    custom_role: Mapped["CustomRole | None"] = relationship(lazy="joined")
     enrollments: Mapped[list[Enrollment]] = relationship(
         back_populates="student",
         cascade="all, delete-orphan",

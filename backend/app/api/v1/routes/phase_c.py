@@ -41,7 +41,12 @@ from app.schemas.phase_c import (
     ReportCourseRow,
     ReportOverview,
 )
-from app.security.policies import DbSession, require_admin, require_staff_of_course
+from app.security.policies import (
+    DbSession,
+    require_admin,
+    require_permission,
+    require_staff_of_course,
+)
 from app.services.audit import log_action
 
 router = APIRouter(tags=["phase-c"])
@@ -212,7 +217,7 @@ def gradebook_matrix(
 @router.get("/admin/settings", response_model=CenterSettings)
 def get_center_settings(
     db: DbSession,
-    _admin: Annotated[User, Depends(require_admin)],
+    _user: Annotated[User, Depends(require_permission("settings.manage"))],
 ) -> CenterSettings:
     return _center_settings(db)
 
@@ -221,7 +226,7 @@ def get_center_settings(
 def update_center_settings(
     body: CenterSettingsUpdate,
     db: DbSession,
-    admin: Annotated[User, Depends(require_admin)],
+    admin: Annotated[User, Depends(require_permission("settings.manage"))],
     request: Request,
 ) -> CenterSettings:
     current = _center_settings(db)
@@ -249,7 +254,7 @@ def update_center_settings(
 @router.get("/admin/reports/overview", response_model=ReportOverview)
 def reports_overview(
     db: DbSession,
-    _admin: Annotated[User, Depends(require_admin)],
+    _user: Annotated[User, Depends(require_permission("reports.view"))],
 ) -> ReportOverview:
     center = _center_settings(db)
     courses = db.scalars(select(Course).order_by(Course.name)).all()
@@ -337,7 +342,7 @@ def reports_overview(
 @router.get("/admin/reports/overview.csv")
 def reports_overview_csv(
     db: DbSession,
-    _admin: Annotated[User, Depends(require_admin)],
+    _admin: Annotated[User, Depends(require_permission("reports.view"))],
 ) -> Response:
     overview = reports_overview(db, _admin)
     buf = io.StringIO()

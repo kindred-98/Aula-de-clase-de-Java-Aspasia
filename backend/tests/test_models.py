@@ -50,6 +50,10 @@ def test_all_tables_created() -> None:
         "course_messages",
         "course_message_reads",
         "system_settings",
+        "course_categories",
+        "cohorts",
+        "cohort_members",
+        "custom_roles",
     }
     session.close()
 

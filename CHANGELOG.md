@@ -2,6 +2,67 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase D] — 2026-09-24
+
+### Hecho
+
+- Backend (Escala):
+  - Modelos nuevos (`models/scale.py`): `CourseCategory`, `Cohort`,
+    `CohortMembership`, `CustomRole`; FKs `Course.category_id`,
+    `Course.cohort_id`, `User.custom_role_id` (SET NULL); migración
+    `d9a4b5c6e7f8` aplicada localmente.
+  - Categorías: CRUD `/admin/categories` (+ `GET /categories` con
+    `course_count`) y `PATCH /admin/courses/{id}/taxonomy` para asignar
+    categoría/cohort a un curso.
+  - Cohorts: CRUD `/admin/cohorts` con miembros (alta/baja individual y
+    masiva, idempotente) y `POST /courses/{id}/auto-enroll` (solo staff;
+    matricula a todos los estudiantes del cohort de su curso con huecos
+    libres; motivos `no_cohort|empty_cohort|no_free_seats|
+    already_enrolled`; audit `course.auto_enrolled`).
+  - Roles personalizados: CRUD `/admin/roles` con catálogo
+    `KNOWN_PERMISSIONS` (`reports.view`, `settings.manage`,
+    `backup.export`, `gradebook.view`, `courses.manage`,
+    `users.manage`; permiso desconocido → 422), asignación vía
+    `POST /admin/users/{id}/custom-role`, `GET /admin/permissions` y
+    `GET /auth/permissions`.
+  - Control de acceso basado en permisos: `require_permission()` en
+    `security/policies.py` (admin → todos los permisos, resto → su
+    `CustomRole`); conectado a Fase C: `/admin/settings` exige
+    `settings.manage` y `/admin/reports/overview[.csv]` exige
+    `reports.view`.
+  - Sesiones y desbloqueo: `GET /admin/sessions` (refresh tokens vivos),
+    `POST /admin/sessions/revoke` (audit `sessions.revoked`) y
+    `POST /admin/users/{id}/unlock` (limpia fallos de login del audit,
+    audit `user.unlocked`).
+  - `CoursePublic` expone `category_id`/`cohort_id`.
+  - Tests Fase D (`tests/test_phase_d.py`, 7 tests): categorías,
+    taxonomy, cohorts + miembros + autoenrolamiento (con y sin huecos),
+    gating de reportes por permiso personalizado, rutas solo-admin,
+    sesiones y desbloqueo; `test_models` con las 4 tablas nuevas.
+  - ruff + format + mypy + pytest+cov **105 tests, 86%**.
+- Frontend modular `features/scale/`:
+  - `/admin/categories`: CRUD de categorías con contador de cursos.
+  - `/admin/cohorts`: CRUD de cohorts con despliegue de miembros y
+    gestión individual/masiva.
+  - `/admin/roles`: CRUD de roles personalizados con selección de
+    permisos y asignación a usuarios.
+  - `/admin/sessions`: tabla de sesiones activas + acciones de cuenta
+    (revocar sesiones, desbloquear cuenta).
+  - `CourseTaxonomyPanel` en el detalle de curso admin (asignar
+    categoría/cohort + botón autoenrolar con feedback de motivos).
+  - Nav AdminLayout con Categorías, Cohorts, Roles y Sesiones.
+  - Tipos nuevos en `lib/api.ts` (category, cohort, role, session,
+    autoenroll, taxonomy) y `CoursePublic.category_id/cohort_id`.
+  - Tests `ScalePhaseD.test.tsx` (4); lint/format/typecheck/build
+    **31 tests frontend** en verde.
+
+### Pendiente / limitaciones
+
+- Item 17 (email real opcional) descartado por diseño: la plataforma
+  es in-app (notificaciones y mensajes internos), sin envío SMTP.
+- Pendiente Fase B: notificaciones in-app y anuncios globales.
+- Ajustes de sesión (expiración, MFA) siguen fuera del alcance.
+
 ## [Fase C] — 2026-09-24
 
 ### Hecho

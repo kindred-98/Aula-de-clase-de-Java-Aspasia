@@ -119,10 +119,12 @@ export type CoursePublic = {
   name: string;
   description: string | null;
   code: string;
-  status: string;
+  status: "active" | "archived";
   layout_rows: number;
   layout_cols: number;
   settings: Record<string, unknown>;
+  category_id: number | null;
+  cohort_id: number | null;
   created_at: string;
 };
 
@@ -568,6 +570,68 @@ export type CourseBackup = {
   assignments: unknown[];
   announcements: unknown[];
   submissions: unknown[];
+};
+
+export type CategoryPublic = {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  created_at: string;
+  course_count: number;
+};
+
+export type CohortPublic = {
+  id: number;
+  name: string;
+  code: string;
+  category_id: number | null;
+  created_at: string;
+  member_count: number;
+};
+
+export type CohortMemberPublic = {
+  student_id: number;
+  name: string;
+  username: string | null;
+};
+
+export type CohortDetail = CohortPublic & {
+  members: CohortMemberPublic[];
+};
+
+export type CustomRolePublic = {
+  id: number;
+  name: string;
+  permissions: string[];
+  created_at: string;
+  assigned_count: number;
+};
+
+export type PermissionCatalog = {
+  permissions: string[];
+  effective: string[];
+};
+
+export type ActiveSessionPublic = {
+  id: number;
+  user_id: number;
+  user_name: string;
+  user_role: string;
+  created_at: string;
+  expires_at: string;
+};
+
+export type AutoEnrollResult = {
+  enrolled: number;
+  skipped: number;
+  reason: string | null;
+};
+
+export type CourseTaxonomyPublic = {
+  course_id: number;
+  category_id: number | null;
+  cohort_id: number | null;
 };
 
 export async function apiDownload(path: string, filename: string): Promise<void> {

@@ -24,6 +24,10 @@ import { CenterSettingsPage } from "../features/phasec/CenterSettingsPage";
 import { ReportsPage } from "../features/phasec/ReportsPage";
 import { GradebookPage } from "../features/phasec/GradebookPage";
 import { InstitutionalCalendarPage } from "../features/phasec/InstitutionalCalendarPage";
+import { CategoriesPage } from "../features/scale/CategoriesPage";
+import { CohortsPage } from "../features/scale/CohortsPage";
+import { RolesPage } from "../features/scale/RolesPage";
+import { SessionsPage } from "../features/scale/SessionsPage";
 import { AdminLayout } from "../features/admin/AdminLayout";
 import { AdminDashboardPage } from "../features/admin/dashboard/AdminDashboardPage";
 import { AdminCoursesPage } from "../features/admin/courses/AdminCoursesPage";
@@ -200,6 +204,10 @@ export function AppRoutes() {
           <Route path="tools" element={<AdminToolsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<CenterSettingsPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="cohorts" element={<CohortsPage />} />
+          <Route path="roles" element={<RolesPage />} />
+          <Route path="sessions" element={<SessionsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

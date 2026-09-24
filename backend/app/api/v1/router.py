@@ -15,6 +15,7 @@ from app.api.v1.routes import (
     messages,
     phase3,
     phase_c,
+    phase_d,
     rubrics,
     sections,
     work,
@@ -34,6 +35,7 @@ api_router.include_router(calendar.router)
 api_router.include_router(calendar_inst.router)
 api_router.include_router(phase3.router)
 api_router.include_router(phase_c.router)
+api_router.include_router(phase_d.router)
 api_router.include_router(messages.router)
 api_router.include_router(course_chat.router)
 

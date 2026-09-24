@@ -44,6 +44,18 @@ export function AdminLayout() {
           <NavLink to="/admin/reports" className={navClass}>
             <span aria-hidden>▥</span> Reportes
           </NavLink>
+          <NavLink to="/admin/categories" className={navClass}>
+            <span aria-hidden>⊞</span> Categorías
+          </NavLink>
+          <NavLink to="/admin/cohorts" className={navClass}>
+            <span aria-hidden>◍</span> Cohorts
+          </NavLink>
+          <NavLink to="/admin/roles" className={navClass}>
+            <span aria-hidden>◆</span> Roles
+          </NavLink>
+          <NavLink to="/admin/sessions" className={navClass}>
+            <span aria-hidden>◷</span> Sesiones
+          </NavLink>
           <NavLink to="/admin/audit" className={navClass}>
             <span aria-hidden>☰</span> Auditoría
           </NavLink>

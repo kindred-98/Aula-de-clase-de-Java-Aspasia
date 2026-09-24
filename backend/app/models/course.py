@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.scale import Cohort, CourseCategory
     from app.models.user import User
 
 try:  # JSONB en PostgreSQL, JSON en SQLite (tests locales)
@@ -59,11 +60,27 @@ class Course(Base):
     settings: Mapped[dict[str, Any]] = mapped_column(
         JsonType, nullable=False, default=dict, server_default="{}"
     )
+    category_id: Mapped[int | None] = mapped_column(
+        ForeignKey("course_categories.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    cohort_id: Mapped[int | None] = mapped_column(
+        ForeignKey("cohorts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
+
+    category: Mapped["CourseCategory | None"] = relationship(
+        back_populates="courses",
+        lazy="joined",
+    )
+    cohort: Mapped["Cohort | None"] = relationship(lazy="joined")
 
     seats: Mapped[list["Seat"]] = relationship(
         back_populates="course",

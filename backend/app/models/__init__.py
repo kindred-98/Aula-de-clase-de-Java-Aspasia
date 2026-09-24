@@ -13,6 +13,7 @@ from app.models.course import (
 )
 from app.models.course_message import CourseMessage, CourseMessageRead
 from app.models.message import Message
+from app.models.scale import Cohort, CohortMembership, CourseCategory, CustomRole
 from app.models.system import SystemSetting
 from app.models.user import RefreshToken, User, UserRole
 from app.models.work import (
@@ -31,11 +32,15 @@ __all__ = [
     "AttendanceRecord",
     "AttendanceStatus",
     "AuditLog",
+    "Cohort",
+    "CohortMembership",
     "Course",
+    "CourseCategory",
     "CourseMessage",
     "CourseMessageRead",
     "CourseStatus",
     "CourseTeacher",
+    "CustomRole",
     "Enrollment",
     "EnrollmentStatus",
     "Evaluation",

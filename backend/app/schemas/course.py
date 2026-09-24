@@ -37,6 +37,8 @@ class CoursePublic(BaseModel):
     layout_rows: int
     layout_cols: int
     settings: dict[str, Any]
+    category_id: int | None = None
+    cohort_id: int | None = None
     created_at: datetime
 
 

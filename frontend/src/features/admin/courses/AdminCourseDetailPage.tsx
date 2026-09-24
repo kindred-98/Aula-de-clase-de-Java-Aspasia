@@ -7,6 +7,7 @@ import { CourseEditForm } from "./CourseEditForm";
 import { EnrollmentManager } from "./EnrollmentManager";
 import { TeacherManager } from "./TeacherManager";
 import { CourseBackupButton } from "../../phasec/CourseBackupButton";
+import { CourseTaxonomyPanel } from "../../scale/CourseTaxonomyPanel";
 
 export function AdminCourseDetailPage() {
   const { courseId } = useParams();
@@ -68,6 +69,8 @@ export function AdminCourseDetailPage() {
           <EnrollmentManager courseId={c.id} />
         </div>
       </div>
+
+      <CourseTaxonomyPanel courseId={c.id} categoryId={c.category_id} cohortId={c.cohort_id} />
 
       <div className="rounded-lg border border-border bg-surface p-4 text-sm text-muted">
         Métricas y CSV del curso:{" "}

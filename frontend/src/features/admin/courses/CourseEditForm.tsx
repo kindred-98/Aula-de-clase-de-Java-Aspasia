@@ -67,7 +67,11 @@ export function CourseEditForm({ course, onSaved }: Props) {
         </label>
         <label className="block space-y-1 text-sm">
           <span className="text-muted">Estado</span>
-          <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select
+            className={inputClass}
+            value={status}
+            onChange={(e) => setStatus(e.target.value as CoursePublic["status"])}
+          >
             <option value="active">Activo</option>
             <option value="archived">Archivado</option>
           </select>

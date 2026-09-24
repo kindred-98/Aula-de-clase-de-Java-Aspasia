@@ -4,6 +4,7 @@ Toda comprobación de acceso (matriz de permisos) vive aquí; los endpoints
 solo declaran la dependencia correspondiente.
 """
 
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Path, Request, status
@@ -34,8 +35,10 @@ __all__ = [
     "get_course_or_404",
     "require_admin",
     "require_enrolled",
+    "require_permission",
     "require_staff_of_course",
     "require_teacher_of_course",
+    "user_permissions",
 ]
 
 
@@ -96,6 +99,29 @@ def require_admin(user: Annotated[User, Depends(CurrentUser)]) -> User:
     if user.role is not UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
+
+
+def user_permissions(user: User) -> list[str]:
+    """Permisos efectivos: admin → todos; resto → su rol personalizado."""
+    from app.schemas.scale import KNOWN_PERMISSIONS
+
+    if user.role is UserRole.admin:
+        return list(KNOWN_PERMISSIONS)
+    if user.custom_role is not None:
+        perms = user.custom_role.permissions or []
+        return [p for p in perms if p in KNOWN_PERMISSIONS]
+    return []
+
+
+def require_permission(perm: str) -> Callable[[Annotated[User, Depends(CurrentUser)]], User]:
+    """Dependency factory: admin o usuario con rol personalizado que incluya `perm`."""
+
+    def dependency(user: Annotated[User, Depends(CurrentUser)]) -> User:
+        if perm in user_permissions(user):
+            return user
+        raise HTTPException(status_code=403, detail="Permission required")
+
+    return dependency
 
 
 def get_course_or_404(
