@@ -58,3 +58,10 @@ class UserPublic(BaseModel):
     is_active: bool
     must_change_credentials: bool
     created_at: datetime
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Actualización de perfil propio (nombre y/o email)."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    email: str | None = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$", max_length=320)

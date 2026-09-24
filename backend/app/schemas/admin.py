@@ -21,6 +21,41 @@ class AdminUserPublic(BaseModel):
     created_at: datetime
 
 
+class AdminUserCreate(BaseModel):
+    """Alta de usuario por el admin (admin o teacher; student preferible por CSV)."""
+
+    name: str = Field(min_length=1, max_length=200)
+    role: UserRole
+    email: str | None = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$", max_length=320)
+    username: str | None = Field(default=None, min_length=1, max_length=100)
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+    pin: str | None = Field(default=None, pattern=r"^\d{6}$")
+
+
+class AdminUserUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    email: str | None = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$", max_length=320)
+    username: str | None = Field(default=None, min_length=1, max_length=100)
+    role: UserRole | None = None
+    is_active: bool | None = None
+
+
+class AdminUserCreated(AdminUserPublic):
+    """Alta con secreto temporal visible una sola vez."""
+
+    temporary_secret: str | None = None
+
+
+class StaffPasswordResetRequest(BaseModel):
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+
+
+class StaffPasswordResetResponse(BaseModel):
+    user_id: int
+    password: str
+    must_change_credentials: bool = True
+
+
 class PinResetRequest(BaseModel):
     """Reset de PIN de estudiante. El PIN nuevo se devuelve una sola vez."""
 

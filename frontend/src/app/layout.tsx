@@ -26,6 +26,14 @@ export function AppLayout() {
                   Cursos
                 </NavLink>
                 <NavLink
+                  to="/account"
+                  className={({ isActive }) =>
+                    isActive ? "text-primary underline" : "text-muted hover:text-text"
+                  }
+                >
+                  Mi cuenta
+                </NavLink>
+                <NavLink
                   to="/account/privacy"
                   className={({ isActive }) =>
                     isActive ? "text-primary underline" : "text-muted hover:text-text"
@@ -34,14 +42,24 @@ export function AppLayout() {
                   Privacidad
                 </NavLink>
                 {isAdmin ? (
-                  <NavLink
-                    to="/admin"
-                    className={({ isActive }) =>
-                      isActive ? "text-primary underline" : "text-muted hover:text-text"
-                    }
-                  >
-                    Admin
-                  </NavLink>
+                  <>
+                    <NavLink
+                      to="/admin/messages"
+                      className={({ isActive }) =>
+                        isActive ? "text-primary underline" : "text-muted hover:text-text"
+                      }
+                    >
+                      Mensajes
+                    </NavLink>
+                    <NavLink
+                      to="/admin"
+                      className={({ isActive }) =>
+                        isActive ? "text-primary underline" : "text-muted hover:text-text"
+                      }
+                    >
+                      Admin
+                    </NavLink>
+                  </>
                 ) : null}
                 <button
                   type="button"

@@ -344,6 +344,92 @@ export type RgpdExportResponse = {
   exported_at: string;
 };
 
+export type AdminDashboardStats = {
+  courses_total: number;
+  courses_active: number;
+  users_total: number;
+  students_total: number;
+  teachers_total: number;
+  enrollments_total: number;
+  submissions_pending: number;
+  submissions_total: number;
+  recent_audit: {
+    id: number;
+    action: string;
+    actor_name: string | null;
+    course_id: number | null;
+    created_at: string;
+  }[];
+  recent_submissions: {
+    id: number;
+    student_name: string | null;
+    course_name: string | null;
+    status: string;
+    updated_at: string;
+  }[];
+};
+
+export type AdminUserCreated = AdminUserPublic & {
+  temporary_secret: string | null;
+};
+
+export type StaffPasswordResetResponse = {
+  user_id: number;
+  password: string;
+  must_change_credentials: boolean;
+};
+
+export type ObserverSubmissionRow = {
+  id: number;
+  course_id: number;
+  course_name: string;
+  course_code: string;
+  student_id: number;
+  student_name: string | null;
+  student_username: string | null;
+  assignment_id: number | null;
+  assignment_title: string | null;
+  status: string;
+  version: number;
+  github_url: string | null;
+  notes: string;
+  submitted_at: string | null;
+  updated_at: string;
+  file_count: number;
+  files: { id: number; original_name: string; mime: string; size_bytes: number }[];
+  latest_score: string | null;
+  latest_comment: string | null;
+  evaluated_at: string | null;
+};
+
+export type ObserverResponse = {
+  total: number;
+  items: ObserverSubmissionRow[];
+};
+
+export type MessagePublic = {
+  id: number;
+  sender_id: number;
+  recipient_id: number;
+  course_id: number | null;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+  sender_name: string | null;
+  recipient_name: string | null;
+};
+
+export type ConversationSummary = {
+  user_id: number;
+  name: string;
+  role: string;
+  username: string | null;
+  email: string | null;
+  last_message: string;
+  last_at: string;
+  unread_count: number;
+};
+
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const headers: Record<string, string> = {};
   const token = getAccessToken();

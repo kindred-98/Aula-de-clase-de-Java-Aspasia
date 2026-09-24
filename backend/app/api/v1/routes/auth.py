@@ -9,6 +9,7 @@ from app.schemas.auth import (
     LoginStaffRequest,
     LoginStudentRequest,
     LogoutRequest,
+    ProfileUpdateRequest,
     RefreshRequest,
     TokenResponse,
     UserPublic,
@@ -137,6 +138,30 @@ def me(user: Annotated[object, Depends(CurrentUser)]) -> UserPublic:
     from app.models import User
 
     assert isinstance(user, User)
+    return UserPublic.model_validate(user)
+
+
+@router.patch("/me", response_model=UserPublic)
+def update_profile(
+    body: ProfileUpdateRequest,
+    db: DbSession,
+    user: Annotated[object, Depends(CurrentUser)],
+) -> UserPublic:
+    from sqlalchemy import select
+
+    from app.models import User
+
+    assert isinstance(user, User)
+    if body.name is not None:
+        user.name = body.name
+    if body.email is not None:
+        if body.email != user.email:
+            existing = db.scalar(select(User).where(User.email == body.email, User.id != user.id))
+            if existing is not None:
+                raise HTTPException(status_code=409, detail="Email already exists")
+        user.email = body.email
+    db.commit()
+    db.refresh(user)
     return UserPublic.model_validate(user)
 
 

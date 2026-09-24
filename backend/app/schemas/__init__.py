@@ -1,12 +1,17 @@
 """Esquemas Pydantic."""
 
 from app.schemas.admin import (
+    AdminUserCreate,
+    AdminUserCreated,
     AdminUserPublic,
+    AdminUserUpdate,
     AuditLogPublic,
     CsvImportRequest,
     CsvImportResult,
     PinResetRequest,
     PinResetResponse,
+    StaffPasswordResetRequest,
+    StaffPasswordResetResponse,
     UserStatusUpdate,
 )
 from app.schemas.auth import (
@@ -14,6 +19,7 @@ from app.schemas.auth import (
     LoginStaffRequest,
     LoginStudentRequest,
     LogoutRequest,
+    ProfileUpdateRequest,
     RefreshRequest,
     TokenResponse,
     UserPublic,
@@ -38,6 +44,8 @@ from app.schemas.course import (
     SeatAssign,
     SeatPublic,
 )
+from app.schemas.dashboard import AdminDashboardStats, ObserverResponse, ObserverSubmissionRow
+from app.schemas.message import ConversationSummary, MessageCreate, MessagePublic
 from app.schemas.phase3 import (
     AttendanceBulkRequest,
     AttendanceDayResponse,
@@ -64,7 +72,11 @@ from app.schemas.work import (
 )
 
 __all__ = [
+    "AdminDashboardStats",
+    "AdminUserCreate",
+    "AdminUserCreated",
     "AdminUserPublic",
+    "AdminUserUpdate",
     "AnnouncementCreate",
     "AnnouncementPublic",
     "AnnouncementUpdate",
@@ -81,6 +93,7 @@ __all__ = [
     "ClassroomResponse",
     "ClassroomSeat",
     "CloneCourseRequest",
+    "ConversationSummary",
     "CourseCreate",
     "CoursePublic",
     "CourseUpdate",
@@ -96,8 +109,13 @@ __all__ = [
     "LoginStaffRequest",
     "LoginStudentRequest",
     "LogoutRequest",
+    "MessageCreate",
+    "MessagePublic",
+    "ObserverResponse",
+    "ObserverSubmissionRow",
     "PinResetRequest",
     "PinResetResponse",
+    "ProfileUpdateRequest",
     "RefreshRequest",
     "RgpdExportResponse",
     "RubricCreate",
@@ -108,6 +126,8 @@ __all__ = [
     "SectionCreate",
     "SectionPublic",
     "SectionUpdate",
+    "StaffPasswordResetRequest",
+    "StaffPasswordResetResponse",
     "SubmissionCreate",
     "SubmissionFilePublic",
     "SubmissionPublic",

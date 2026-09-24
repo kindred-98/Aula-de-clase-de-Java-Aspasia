@@ -21,6 +21,7 @@ type AuthState = {
   }) => Promise<TokenPayload>;
   loginStaff: (input: { email: string; password: string }) => Promise<TokenPayload>;
   changeCredentials: (input: { current_secret: string; new_secret: string }) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 };
 
@@ -81,6 +82,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const refreshUser = useCallback(async () => {
+    if (!getAccessToken()) return;
+    try {
+      const profile = await apiGet<UserPublic>("/auth/me");
+      setUser(profile);
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     void apiSend("POST", "/auth/logout", {}).catch(() => undefined);
     clearSession();
@@ -96,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginStudent,
       loginStaff,
       changeCredentials,
+      refreshUser,
       logout,
     }),
     [
@@ -105,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginStudent,
       loginStaff,
       changeCredentials,
+      refreshUser,
       logout,
     ],
   );

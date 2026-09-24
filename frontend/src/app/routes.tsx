@@ -11,11 +11,21 @@ import { ContentPage } from "../features/content/ContentPage";
 import { WorkPage } from "../features/work/WorkPage";
 import { AssignmentDetailPage } from "../features/work/AssignmentDetailPage";
 import { EvaluatePage } from "../features/work/EvaluatePage";
-import { AdminPage } from "../features/admin/AdminPage";
 import { AttendancePage } from "../features/attendance/AttendancePage";
 import { CalendarPage } from "../features/calendar/CalendarPage";
 import { RubricsPage } from "../features/rubrics/RubricsPage";
 import { AccountPrivacyPage } from "../features/account/AccountPrivacyPage";
+import { AccountSettingsPage } from "../features/account/AccountSettingsPage";
+import { AdminLayout } from "../features/admin/AdminLayout";
+import { AdminDashboardPage } from "../features/admin/dashboard/AdminDashboardPage";
+import { AdminCoursesPage } from "../features/admin/courses/AdminCoursesPage";
+import { AdminCourseDetailPage } from "../features/admin/courses/AdminCourseDetailPage";
+import { AdminUsersPage } from "../features/admin/users/AdminUsersPage";
+import { AdminMessagesPage } from "../features/admin/messages/AdminMessagesPage";
+import { AdminObserverPage } from "../features/admin/observer/AdminObserverPage";
+import { AdminAuditPage } from "../features/admin/audit/AdminAuditPage";
+import { ImportCsvPage } from "../features/admin/import/ImportCsvPage";
+import { AdminToolsPage } from "../features/admin/tools/AdminToolsPage";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -119,6 +129,14 @@ export function AppRoutes() {
           }
         />
         <Route
+          path="/account"
+          element={
+            <RequireAuth>
+              <AccountSettingsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/account/privacy"
           element={
             <RequireAuth>
@@ -131,11 +149,21 @@ export function AppRoutes() {
           element={
             <RequireAuth>
               <RequireAdmin>
-                <AdminPage />
+                <AdminLayout />
               </RequireAdmin>
             </RequireAuth>
           }
-        />
+        >
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="courses" element={<AdminCoursesPage />} />
+          <Route path="courses/:courseId" element={<AdminCourseDetailPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="messages" element={<AdminMessagesPage />} />
+          <Route path="observer" element={<AdminObserverPage />} />
+          <Route path="audit" element={<AdminAuditPage />} />
+          <Route path="import" element={<ImportCsvPage />} />
+          <Route path="tools" element={<AdminToolsPage />} />
+        </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

@@ -10,6 +10,7 @@ from app.api.v1.routes import (
     calendar,
     courses,
     health,
+    messages,
     phase3,
     rubrics,
     sections,
@@ -28,5 +29,6 @@ api_router.include_router(rubrics.router)
 api_router.include_router(attendance.router)
 api_router.include_router(calendar.router)
 api_router.include_router(phase3.router)
+api_router.include_router(messages.router)
 
 __all__ = ["api_router"]

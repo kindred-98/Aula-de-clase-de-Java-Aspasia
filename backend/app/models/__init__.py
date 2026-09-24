@@ -11,6 +11,7 @@ from app.models.course import (
     Section,
     SectionKind,
 )
+from app.models.message import Message
 from app.models.user import RefreshToken, User, UserRole
 from app.models.work import (
     Assignment,
@@ -34,6 +35,7 @@ __all__ = [
     "Enrollment",
     "EnrollmentStatus",
     "Evaluation",
+    "Message",
     "RefreshToken",
     "Rubric",
     "Seat",

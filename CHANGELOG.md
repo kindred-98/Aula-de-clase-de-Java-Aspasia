@@ -2,6 +2,49 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase A] — 2026-09-24
+
+### Hecho
+
+- Backend:
+  - Chat 1:1: tabla `messages` (migración `a1f3c9d2e8b4`), rutas
+    `/messages/conversations`, `/messages/{user_id}`, `POST /messages`,
+    `POST /messages/{id}/read`; permisos admin→cualquiera, teacher↔curso,
+    student↔staff de sus cursos.
+  - Admin: `POST /admin/users` (alta con `temporary_secret` una sola vez),
+    `PATCH /admin/users/{id}`, `POST .../reset-password`, dashboard
+    `GET /admin/dashboard` (KPIs + actividad reciente), observador
+    `GET /admin/observer/submissions|evaluations`.
+  - Perfil: `PATCH /auth/me` (nombre/email, 409 email duplicado).
+  - `list_conversations` en Python puro (compatible SQLite sin `least`).
+  - Tests Fase A (`tests/test_admin_phase_a.py`); ruff + mypy + pytest+cov
+    **87 tests, 84.98%**.
+- Frontend (estructura modular, 1 responsabilidad por archivo):
+  - `features/admin/AdminLayout.tsx` + rutas anidadas en `app/routes.tsx`
+    (dashboard, cursos, detalle de curso, usuarios, mensajes, observador,
+    auditoría, import CSV, herramientas).
+  - Dashboard: KPIs, acciones rápidas, entregas y auditoría recientes.
+  - Cursos: crear/editar, matrículas, profesorado, enlace a observador.
+  - Usuarios: alta con banner de secreto temporal, filtros, activar/desactivar,
+    reset PIN/contraseña, borrado RGPD.
+  - Mensajes: lista de conversaciones, hilo de chat con no leídos, escritura.
+  - Observador: entregas + notas con filtros de curso/estado/alumno.
+  - Import CSV: por curso (`name[,email][,username]`) con PINs en lote.
+  - Herramientas: clonar curso, export CSV de notas, métricas por curso.
+  - Mi cuenta (`/account`): perfil + cambio de contraseña
+    (`PATCH /auth/change-credentials`); Privacidad solo RGPD (clonar/CSV
+    movidos a Herramientas).
+  - Nav: Mi cuenta, Mensajes (admin), Admin.
+  - Tipos nuevos en `lib/api.ts`; `AuthContext.refreshUser`.
+  - Tests: `AdminPhaseA.test.tsx` (3) + privacidad actualizada;
+    **18 tests**, lint/format/typecheck/build en verde.
+
+### Pendiente / limitaciones
+
+- Smoke en vivo de la UI admin en el navegador del usuario (la app ya corre
+  en local).
+- Mensajes no usan WebSocket (polling 8–15 s con TanStack Query).
+
 ## [Fase 3] — 2026-09-24
 
 ### Hecho

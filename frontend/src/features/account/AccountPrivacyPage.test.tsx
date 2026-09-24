@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { AuthProvider } from "../auth/AuthContext";
 import { ThemeProvider } from "../../app/theme";
@@ -16,6 +15,7 @@ function renderPrivacy() {
           <AuthProvider>
             <Routes>
               <Route path="/account/privacy" element={<AccountPrivacyPage />} />
+              <Route path="/admin/tools" element={<div>tools</div>} />
             </Routes>
           </AuthProvider>
         </MemoryRouter>
@@ -76,45 +76,20 @@ describe("AccountPrivacyPage", () => {
     expect(await screen.findByText(/Exportar mis datos/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Borrar mis datos/i })).toBeInTheDocument();
     expect(screen.queryByText(/Clonar curso/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Exportar notas \(CSV\)/i)).not.toBeInTheDocument();
   });
 
-  it("ofrece clonar curso y exportar CSV a admin", async () => {
-    const user = userEvent.setup();
+  it("enlaza herramientas de centro a admin", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn((url: string) => {
         if (url.includes("/auth/me")) return Promise.resolve(json(authBody("admin")));
-        if (url.includes("/courses")) {
-          return Promise.resolve(
-            json([
-              {
-                id: 3,
-                name: "Java",
-                code: "JAVA",
-                description: null,
-                status: "active",
-                layout_rows: 3,
-                layout_cols: 5,
-                settings: {},
-                created_at: new Date().toISOString(),
-              },
-            ]),
-          );
-        }
-        return Promise.resolve(json(null));
+        return Promise.resolve(json([]));
       }),
     );
 
     renderPrivacy();
-    expect(await screen.findByText(/Clonar curso/i)).toBeInTheDocument();
-    expect(screen.getByText(/Exportar notas \(CSV\)/i)).toBeInTheDocument();
-
-    expect(await screen.findByRole("option", { name: /Java \(JAVA\)/i })).toBeInTheDocument();
-    const source = screen.getByLabelText(/Curso origen/i);
-    await user.selectOptions(source, "3");
-    expect(source).toHaveValue("3");
-    await waitFor(() => {
-      expect(screen.getByLabelText(/Nombre del clon/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByRole("link", { name: /Herramientas/i })).toBeInTheDocument();
+    expect(screen.queryByText(/Clonar curso/i)).not.toBeInTheDocument();
   });
 });
