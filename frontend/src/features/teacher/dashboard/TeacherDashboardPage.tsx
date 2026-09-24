@@ -1,16 +1,89 @@
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { apiGet, type TeacherDashboard } from "../../../lib/api";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { ErrorState } from "../../../components/ui/ErrorState";
+import { Spinner } from "../../../components/ui/Spinner";
+import { ActivityList } from "./ActivityList";
+import { CourseCard } from "./CourseCard";
+import { KpiCard } from "./KpiCard";
+import { QuickActions } from "./QuickActions";
+import { UpcomingList } from "./UpcomingList";
 
 export function TeacherDashboardPage() {
+  const dashboard = useQuery({
+    queryKey: ["teacher-dashboard"],
+    queryFn: ({ signal }) => apiGet<TeacherDashboard>("/teacher/dashboard", signal),
+  });
+
+  if (dashboard.isPending) return <Spinner label="Cargando panel…" />;
+  if (dashboard.isError)
+    return (
+      <ErrorState
+        message="No se pudo cargar el dashboard"
+        onRetry={() => void dashboard.refetch()}
+      />
+    );
+
+  const d = dashboard.data;
+
   return (
-    <section className="space-y-6">
-      <header>
-        <p className="text-sm text-muted">Profesorado</p>
-        <h1 className="text-2xl font-bold">Panel del profesor</h1>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted">Profesorado</p>
+          <h1 className="text-2xl font-bold">Panel del profesor</h1>
+        </div>
+        <Link to="/teacher/queue" className="text-sm text-primary hover:underline">
+          Ver cola de evaluación →
+        </Link>
       </header>
-      <EmptyState title="Dashboard en construcción">
-        Los KPIs de tus cursos (entregas pendientes, alumnos, próximas fechas) llegarán en la Fase
-        T1.
-      </EmptyState>
-    </section>
+
+      <section aria-label="Indicadores" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard label="Cursos" value={d.totals.courses_count} />
+        <KpiCard label="Alumnos" value={d.totals.students_count} accent="success" />
+        <KpiCard
+          label="Por revisar"
+          value={d.totals.pending_evaluations}
+          accent={d.totals.pending_evaluations > 0 ? "warning" : "success"}
+        />
+        <KpiCard
+          label="Fechas esta semana"
+          value={d.totals.due_this_week}
+          hint={`${d.totals.open_assignments} tareas abiertas`}
+          accent="primary"
+        />
+      </section>
+
+      <section aria-label="Acciones rápidas">
+        <h2 className="mb-3 font-semibold">Acciones rápidas</h2>
+        <QuickActions />
+      </section>
+
+      <section aria-label="Cursos" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Mis cursos</h2>
+          <Link to="/courses" className="text-sm text-primary hover:underline">
+            Ver todos →
+          </Link>
+        </div>
+        {d.courses.length === 0 ? (
+          <EmptyState title="Sin cursos asignados">
+            Un administrador debe asignarte a un curso para verlo aquí.
+          </EmptyState>
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {d.courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section aria-label="Actividad" className="grid gap-4 lg:grid-cols-2">
+        <UpcomingList items={d.upcoming} />
+        <ActivityList items={d.recent} />
+      </section>
+    </div>
   );
 }

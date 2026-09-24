@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -46,6 +46,49 @@ function authAs(role: "teacher" | "student" | "admin") {
             created_at: new Date().toISOString(),
           }),
         );
+      if (url.includes("/teacher/dashboard"))
+        return Promise.resolve(
+          json({
+            totals: {
+              courses_count: 1,
+              students_count: 10,
+              pending_evaluations: 2,
+              due_this_week: 1,
+              open_assignments: 3,
+            },
+            courses: [
+              {
+                id: 1,
+                name: "Java",
+                code: "JAVA",
+                status: "active",
+                students: 10,
+                pending: 2,
+                open_assignments: 3,
+                next_due_at: "2026-10-01T10:00:00Z",
+              },
+            ],
+            upcoming: [
+              {
+                course_id: 1,
+                course_name: "Java",
+                assignment_id: 9,
+                title: "Tarea 9",
+                due_at: "2026-10-01T10:00:00Z",
+              },
+            ],
+            recent: [
+              {
+                course_id: 1,
+                course_name: "Java",
+                assignment_title: "Tarea 9",
+                student_name: "Ana",
+                status: "submitted",
+                submitted_at: "2026-09-24T10:00:00Z",
+              },
+            ],
+          }),
+        );
       return Promise.resolve(json({ total: 0 }));
     }),
   );
@@ -64,9 +107,20 @@ describe("Fase T0 — estructura del panel del profesor", () => {
     renderRoutes(["/teacher"]);
 
     expect(await screen.findByRole("heading", { name: /panel del profesor/i })).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: /panel del profesor/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /cola de evaluación/i })).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: /panel del profesor/i });
+    expect(within(nav).getByRole("link", { name: /cola de evaluación/i })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: /mis cursos/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Panel" })).toBeInTheDocument();
+  });
+
+  it("el dashboard muestra KPIs, cursos y actividad", async () => {
+    authAs("teacher");
+    renderRoutes(["/teacher"]);
+
+    expect(await screen.findByText("Por revisar")).toBeInTheDocument();
+    expect(screen.getByText("Fechas esta semana")).toBeInTheDocument();
+    expect(screen.getByText("10 alumnos")).toBeInTheDocument();
+    expect(screen.getByText("Tarea 9")).toBeInTheDocument();
   });
 
   it("la cola de evaluación responde en /teacher/queue", async () => {

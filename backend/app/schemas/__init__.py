@@ -97,6 +97,13 @@ from app.schemas.scale import (
     SessionRevokeResult,
     UnlockResult,
 )
+from app.schemas.teacher import (
+    TeacherDashboard,
+    TeacherDashboardCourse,
+    TeacherRecentItem,
+    TeacherTotals,
+    TeacherUpcomingItem,
+)
 from app.schemas.work import (
     AssignmentCreate,
     AssignmentPublic,
@@ -196,6 +203,11 @@ __all__ = [
     "SubmissionFilePublic",
     "SubmissionPublic",
     "SubmissionUpdate",
+    "TeacherDashboard",
+    "TeacherDashboardCourse",
+    "TeacherRecentItem",
+    "TeacherTotals",
+    "TeacherUpcomingItem",
     "TokenResponse",
     "UnlockResult",
     "UnreadCountResponse",

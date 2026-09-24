@@ -18,6 +18,7 @@ from app.api.v1.routes import (
     phase_d,
     rubrics,
     sections,
+    teacher,
     work,
 )
 
@@ -38,5 +39,6 @@ api_router.include_router(phase_c.router)
 api_router.include_router(phase_d.router)
 api_router.include_router(messages.router)
 api_router.include_router(course_chat.router)
+api_router.include_router(teacher.router)
 
 __all__ = ["api_router"]

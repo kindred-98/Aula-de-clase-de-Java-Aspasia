@@ -634,6 +634,49 @@ export type CourseTaxonomyPublic = {
   cohort_id: number | null;
 };
 
+export type TeacherTotals = {
+  courses_count: number;
+  students_count: number;
+  pending_evaluations: number;
+  due_this_week: number;
+  open_assignments: number;
+};
+
+export type TeacherDashboardCourse = {
+  id: number;
+  name: string;
+  code: string;
+  status: string;
+  students: number;
+  pending: number;
+  open_assignments: number;
+  next_due_at: string | null;
+};
+
+export type TeacherUpcomingItem = {
+  course_id: number;
+  course_name: string;
+  assignment_id: number;
+  title: string;
+  due_at: string;
+};
+
+export type TeacherRecentItem = {
+  course_id: number;
+  course_name: string;
+  assignment_title: string | null;
+  student_name: string;
+  status: string;
+  submitted_at: string | null;
+};
+
+export type TeacherDashboard = {
+  totals: TeacherTotals;
+  courses: TeacherDashboardCourse[];
+  upcoming: TeacherUpcomingItem[];
+  recent: TeacherRecentItem[];
+};
+
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const headers: Record<string, string> = {};
   const token = getAccessToken();
