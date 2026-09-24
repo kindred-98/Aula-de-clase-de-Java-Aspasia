@@ -430,6 +430,47 @@ export type ConversationSummary = {
   unread_count: number;
 };
 
+export type MessageDirectoryEntry = {
+  id: number;
+  name: string;
+  role: string;
+  username: string | null;
+  email: string | null;
+  course_ids: number[];
+};
+
+export type UnreadCountResponse = {
+  private: number;
+  courses: Record<string, number>;
+  total: number;
+};
+
+export type CourseMessagePublic = {
+  id: number;
+  course_id: number;
+  sender_id: number;
+  body: string;
+  created_at: string;
+  sender_name: string | null;
+  sender_role: string | null;
+};
+
+export type CourseChatPage = {
+  total: number;
+  unread: number;
+  items: CourseMessagePublic[];
+};
+
+export type CourseChatRoomSummary = {
+  course_id: number;
+  course_name: string;
+  course_code: string;
+  unread: number;
+  last_message: string | null;
+  last_at: string | null;
+  last_sender_name: string | null;
+};
+
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const headers: Record<string, string> = {};
   const token = getAccessToken();

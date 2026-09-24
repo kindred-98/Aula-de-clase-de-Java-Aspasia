@@ -4,7 +4,7 @@ import { apiGet, apiSend, type MessagePublic } from "../../../lib/api";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
 import { Spinner } from "../../../components/ui/Spinner";
-import { MessageComposer } from "./MessageComposer";
+import { PrivateComposer } from "./PrivateComposer";
 
 type Props = {
   otherUserId: number | null;
@@ -12,7 +12,7 @@ type Props = {
   meId: number;
 };
 
-export function ChatThread({ otherUserId, otherName, meId }: Props) {
+export function PrivateThread({ otherUserId, otherName, meId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -27,6 +27,7 @@ export function ChatThread({ otherUserId, otherName, meId }: Props) {
     mutationFn: () => apiSend<void>("POST", `/messages/${otherUserId}/read`, {}),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      void queryClient.invalidateQueries({ queryKey: ["unread-count"] });
     },
   });
 
@@ -88,11 +89,12 @@ export function ChatThread({ otherUserId, otherName, meId }: Props) {
         )}
         <div ref={bottomRef} />
       </div>
-      <MessageComposer
+      <PrivateComposer
         recipientId={otherUserId}
         onSent={() => {
           void queryClient.invalidateQueries({ queryKey: ["messages", otherUserId] });
           void queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          void queryClient.invalidateQueries({ queryKey: ["unread-count"] });
         }}
       />
     </div>

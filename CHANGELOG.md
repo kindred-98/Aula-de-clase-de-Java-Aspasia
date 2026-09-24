@@ -2,6 +2,42 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase B] — 2026-09-24
+
+### Hecho
+
+- Backend (comunicación):
+  - Chat privado ampliado: student↔student si comparten matrícula activa;
+    `GET /messages/directory` por rol (admin→todos, teacher→sus alumnos+
+    admins, student→profes+admins+compañeros de clase con `course_ids`).
+  - `GET /messages/unread-count` (privados + no leídos por sala de curso,
+    `total` calculado en `build_unread_count`).
+  - Chat global por curso: tablas `course_messages` y `course_message_reads`
+    (migración `b7e2d4f1a9c3`); `GET/POST /courses/{id}/chat`,
+    `POST .../chat/read`, `GET /me/course-chats`; miembros 404 si no
+    pertenecen; audit `course_chat.sent`.
+  - Tests Fase B (`tests/test_messages_phase_b.py`, 5 tests): permisos
+    student→student, directorio por rol, unread-count, sala de curso,
+    aislamiento de no miembros.
+  - ruff + format + mypy + pytest+cov **92 tests, 85%**.
+- Frontend modular `features/messages/` (1 responsabilidad por archivo):
+  - `/messages` accesible a todos los roles: pestañas Privado y Por curso.
+  - Privado: conversaciones, directorio messageable, hilo, composer.
+  - Curso: lista de salas (`/me/course-chats`), hilo con no leídos, composer.
+  - Badge de no leídos en la nav (`useUnreadCount`, polling 20 s).
+  - `features/admin/messages/` eliminado; `/admin/messages` redirige a
+    `/messages`; AdminLayout y QuickActions actualizados.
+  - Tipos nuevos en `lib/api.ts` (directory, unread, course chat).
+  - Tests `MessagesPhaseB.test.tsx` (4); lint/format/typecheck/build
+    **22 tests frontend** en verde.
+- Migración local: `alembic upgrade head` → `b7e2d4f1a9c3`.
+
+### Pendiente / limitaciones
+
+- Notificaciones in-app (campana) y anuncios globales del centro: aún en
+  Fase B roadmap (pendientes 6 y 8).
+- Chat sin WebSocket (polling 8–20 s con TanStack Query).
+
 ## [Fase A] — 2026-09-24
 
 ### Hecho

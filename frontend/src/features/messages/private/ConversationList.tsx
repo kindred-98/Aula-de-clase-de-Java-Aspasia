@@ -20,7 +20,7 @@ export function ConversationList({ selectedId, onSelect }: Props) {
   if (conversations.data?.length === 0) {
     return (
       <EmptyState title="Sin conversaciones">
-        Escribe el primer mensaje a un estudiante o profesor.
+        Escribe el primer mensaje a un compañero, profesor o administración.
       </EmptyState>
     );
   }

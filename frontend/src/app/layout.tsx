@@ -1,11 +1,14 @@
 import { Outlet, Link, NavLink } from "react-router-dom";
 import { useTheme } from "./theme";
 import { useAuth } from "../features/auth/AuthContext";
+import { useUnreadCount } from "../features/messages/useUnreadCount";
 
 export function AppLayout() {
   const { theme, toggle } = useTheme();
   const { isAuthenticated, mustChange, logout, user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const unread = useUnreadCount();
+  const unreadTotal = unread.data?.total ?? 0;
 
   return (
     <div className="min-h-screen bg-bg text-text">
@@ -26,6 +29,22 @@ export function AppLayout() {
                   Cursos
                 </NavLink>
                 <NavLink
+                  to="/messages"
+                  className={({ isActive }) =>
+                    isActive ? "text-primary underline" : "text-muted hover:text-text"
+                  }
+                >
+                  Mensajes
+                  {unreadTotal > 0 ? (
+                    <span
+                      className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs font-medium text-white"
+                      aria-label={`${unreadTotal} mensajes sin leer`}
+                    >
+                      {unreadTotal}
+                    </span>
+                  ) : null}
+                </NavLink>
+                <NavLink
                   to="/account"
                   className={({ isActive }) =>
                     isActive ? "text-primary underline" : "text-muted hover:text-text"
@@ -42,24 +61,14 @@ export function AppLayout() {
                   Privacidad
                 </NavLink>
                 {isAdmin ? (
-                  <>
-                    <NavLink
-                      to="/admin/messages"
-                      className={({ isActive }) =>
-                        isActive ? "text-primary underline" : "text-muted hover:text-text"
-                      }
-                    >
-                      Mensajes
-                    </NavLink>
-                    <NavLink
-                      to="/admin"
-                      className={({ isActive }) =>
-                        isActive ? "text-primary underline" : "text-muted hover:text-text"
-                      }
-                    >
-                      Admin
-                    </NavLink>
-                  </>
+                  <NavLink
+                    to="/admin"
+                    className={({ isActive }) =>
+                      isActive ? "text-primary underline" : "text-muted hover:text-text"
+                    }
+                  >
+                    Admin
+                  </NavLink>
                 ) : null}
                 <button
                   type="button"

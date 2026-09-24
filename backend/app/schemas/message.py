@@ -34,3 +34,30 @@ class ConversationSummary(BaseModel):
     last_message: str
     last_at: datetime
     unread_count: int
+
+
+class MessageDirectoryEntry(BaseModel):
+    """Persona con la que el usuario actual puede abrir chat privado."""
+
+    id: int
+    name: str
+    role: str
+    username: str | None = None
+    email: str | None = None
+    course_ids: list[int] = Field(default_factory=list)
+
+
+class UnreadCountResponse(BaseModel):
+    """Contadores ligeros para el badge de la nav."""
+
+    private: int
+    courses: dict[str, int] = Field(default_factory=dict)
+    total: int = 0
+
+
+def build_unread_count(private: int, courses: dict[str, int]) -> UnreadCountResponse:
+    return UnreadCountResponse(
+        private=private,
+        courses=courses,
+        total=private + sum(courses.values()),
+    )

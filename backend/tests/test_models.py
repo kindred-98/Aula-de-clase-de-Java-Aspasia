@@ -47,6 +47,8 @@ def test_all_tables_created() -> None:
         "audit_logs",
         "rubrics",
         "messages",
+        "course_messages",
+        "course_message_reads",
     }
     session.close()
 

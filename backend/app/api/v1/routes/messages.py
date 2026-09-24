@@ -1,4 +1,4 @@
-"""Chat 1:1: conversaciones y envío de mensajes."""
+"""Chat 1:1: conversaciones, directorio messageable y envío."""
 
 from datetime import UTC, datetime
 from typing import Annotated
@@ -8,7 +8,14 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import Course, CourseTeacher, Enrollment, EnrollmentStatus, Message, User, UserRole
-from app.schemas.message import ConversationSummary, MessageCreate, MessagePublic
+from app.schemas.message import (
+    ConversationSummary,
+    MessageCreate,
+    MessageDirectoryEntry,
+    MessagePublic,
+    UnreadCountResponse,
+    build_unread_count,
+)
 from app.security.policies import CurrentUser, DbSession
 from app.services.audit import log_action
 
@@ -29,48 +36,276 @@ def _message_public(m: Message) -> MessagePublic:
     )
 
 
+def _shared_active_course_ids(db: Session, a_id: int, b_id: int) -> list[int]:
+    """Cursos donde ambos están activos (matriculado o staff)."""
+    rows = db.execute(
+        select(Enrollment.course_id)
+        .join(CourseTeacher, CourseTeacher.course_id == Enrollment.course_id)
+        .where(
+            CourseTeacher.teacher_id == b_id,
+            Enrollment.student_id == a_id,
+            Enrollment.status == EnrollmentStatus.active,
+        )
+    ).scalars()
+    return list(rows)
+
+
+def _classmate_course_ids(db: Session, student_id: int) -> list[int]:
+    """Cursos donde el estudiante está matriculado activamente."""
+    return list(
+        db.scalars(
+            select(Enrollment.course_id).where(
+                Enrollment.student_id == student_id,
+                Enrollment.status == EnrollmentStatus.active,
+            )
+        ).all()
+    )
+
+
+def _shares_course_as_students(db: Session, a_id: int, b_id: int) -> bool:
+    """Ambos matriculados en al menos un curso en común."""
+    a_courses = set(_classmate_course_ids(db, a_id))
+    if not a_courses:
+        return False
+    b_courses = set(_classmate_course_ids(db, b_id))
+    return bool(a_courses & b_courses)
+
+
 def _can_message(db: Session, sender: User, recipient: User) -> None:
     if recipient.id == sender.id:
         raise HTTPException(status_code=400, detail="Cannot message yourself")
     if not recipient.is_active:
         raise HTTPException(status_code=404, detail="Recipient not found")
+
     if sender.role is UserRole.admin:
         return
+
     if sender.role is UserRole.teacher:
         if recipient.role is UserRole.admin:
             return
         if recipient.role is UserRole.student:
-            shared = db.scalar(
-                select(Enrollment.id)
-                .join(CourseTeacher, CourseTeacher.course_id == Enrollment.course_id)
-                .where(
-                    CourseTeacher.teacher_id == sender.id,
-                    Enrollment.student_id == recipient.id,
-                    Enrollment.status == EnrollmentStatus.active,
-                )
-                .limit(1)
-            )
-            if shared is None:
-                raise HTTPException(status_code=403, detail="Not allowed to message this user")
-            return
+            if _shared_active_course_ids(db, sender.id, recipient.id):
+                return
+            raise HTTPException(status_code=403, detail="Not allowed to message this user")
+        raise HTTPException(status_code=403, detail="Not allowed to message this user")
+
     # student
     if recipient.role is UserRole.admin:
         return
     if recipient.role is UserRole.teacher:
-        shared = db.scalar(
-            select(CourseTeacher.id)
-            .join(Enrollment, Enrollment.course_id == CourseTeacher.course_id)
-            .where(
-                CourseTeacher.teacher_id == recipient.id,
-                Enrollment.student_id == sender.id,
-                Enrollment.status == EnrollmentStatus.active,
-            )
-            .limit(1)
-        )
-        if shared is None:
-            raise HTTPException(status_code=403, detail="Not allowed to message this user")
-        return
+        if _shared_active_course_ids(db, sender.id, recipient.id):
+            return
+        raise HTTPException(status_code=403, detail="Not allowed to message this user")
+    if recipient.role is UserRole.student:
+        if _shares_course_as_students(db, sender.id, recipient.id):
+            return
+        raise HTTPException(status_code=403, detail="Not allowed to message this user")
     raise HTTPException(status_code=403, detail="Not allowed to message this user")
+
+
+def _directory_for(db: Session, user: User) -> list[MessageDirectoryEntry]:
+    if user.role is UserRole.admin:
+        rows = db.scalars(
+            select(User).where(User.is_active.is_(True), User.id != user.id).order_by(User.name)
+        ).all()
+        return [
+            MessageDirectoryEntry(
+                id=u.id,
+                name=u.name,
+                role=u.role.value,
+                username=u.username,
+                email=u.email,
+            )
+            for u in rows
+        ]
+
+    if user.role is UserRole.teacher:
+        admins = db.scalars(
+            select(User).where(User.role == UserRole.admin, User.is_active.is_(True))
+        ).all()
+        student_ids = list(
+            db.scalars(
+                select(Enrollment.student_id)
+                .join(CourseTeacher, CourseTeacher.course_id == Enrollment.course_id)
+                .where(
+                    CourseTeacher.teacher_id == user.id,
+                    Enrollment.status == EnrollmentStatus.active,
+                )
+                .distinct()
+            ).all()
+        )
+        students = (
+            db.scalars(
+                select(User)
+                .where(User.id.in_(student_ids), User.is_active.is_(True))
+                .order_by(User.name)
+            ).all()
+            if student_ids
+            else []
+        )
+        # cursos compartidos por alumno → course_ids del teacher con ese alumno
+        out: list[MessageDirectoryEntry] = []
+        for u in [*admins, *students]:
+            course_ids: list[int] = []
+            if u.role is UserRole.student:
+                course_ids = _shared_active_course_ids(db, user.id, u.id)
+            out.append(
+                MessageDirectoryEntry(
+                    id=u.id,
+                    name=u.name,
+                    role=u.role.value,
+                    username=u.username,
+                    email=u.email,
+                    course_ids=course_ids,
+                )
+            )
+        out.sort(key=lambda e: (e.role, e.name))
+        return out
+
+    # student
+    my_courses = set(_classmate_course_ids(db, user.id))
+    admins = db.scalars(
+        select(User).where(User.role == UserRole.admin, User.is_active.is_(True))
+    ).all()
+    teacher_ids = (
+        list(
+            db.scalars(
+                select(CourseTeacher.teacher_id).where(CourseTeacher.course_id.in_(my_courses))
+            ).all()
+        )
+        if my_courses
+        else []
+    )
+    teachers = (
+        db.scalars(
+            select(User)
+            .where(User.id.in_(teacher_ids), User.is_active.is_(True))
+            .order_by(User.name)
+        ).all()
+        if teacher_ids
+        else []
+    )
+    classmate_ids = (
+        list(
+            db.scalars(
+                select(Enrollment.student_id)
+                .where(
+                    Enrollment.course_id.in_(my_courses),
+                    Enrollment.status == EnrollmentStatus.active,
+                    Enrollment.student_id != user.id,
+                )
+                .distinct()
+            ).all()
+        )
+        if my_courses
+        else []
+    )
+    classmates = (
+        db.scalars(
+            select(User)
+            .where(User.id.in_(classmate_ids), User.is_active.is_(True))
+            .order_by(User.name)
+        ).all()
+        if classmate_ids
+        else []
+    )
+
+    out = []
+    for u in [*admins, *teachers, *classmates]:
+        shared_ids: list[int] = []
+        if u.role is UserRole.student:
+            shared_ids = sorted(my_courses & set(_classmate_course_ids(db, u.id)))
+        elif u.role is UserRole.teacher:
+            shared_ids = sorted(
+                set(
+                    db.scalars(
+                        select(CourseTeacher.course_id).where(
+                            CourseTeacher.teacher_id == u.id,
+                            CourseTeacher.course_id.in_(my_courses),
+                        )
+                    ).all()
+                )
+            )
+        out.append(
+            MessageDirectoryEntry(
+                id=u.id,
+                name=u.name,
+                role=u.role.value,
+                username=u.username,
+                email=u.email,
+                course_ids=shared_ids,
+            )
+        )
+    out.sort(key=lambda e: (e.role, e.name))
+    return out
+
+
+@router.get("/directory", response_model=list[MessageDirectoryEntry])
+def message_directory(
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> list[MessageDirectoryEntry]:
+    """Personas con las que el usuario puede abrir chat privado (según rol)."""
+    return _directory_for(db, user)
+
+
+@router.get("/unread-count", response_model=UnreadCountResponse)
+def unread_count(
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> UnreadCountResponse:
+    """Badge ligero: no leídos privados + por sala de curso."""
+    from app.models import CourseMessage, CourseMessageRead
+
+    private = int(
+        db.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(Message.recipient_id == user.id, Message.read_at.is_(None))
+        )
+        or 0
+    )
+
+    # cursos visibles: matrículas activas o staff
+    course_ids = set(_classmate_course_ids(db, user.id))
+    if user.role in (UserRole.admin, UserRole.teacher):
+        if user.role is UserRole.teacher:
+            rows = db.scalars(
+                select(CourseTeacher.course_id).where(CourseTeacher.teacher_id == user.id)
+            ).all()
+            course_ids |= set(rows)
+        else:
+            course_ids |= set(db.scalars(select(Course.id)).all())
+
+    courses: dict[str, int] = {}
+    if course_ids:
+        reads = {
+            (r.course_id): r.last_read_id
+            for r in db.scalars(
+                select(CourseMessageRead).where(
+                    CourseMessageRead.user_id == user.id,
+                    CourseMessageRead.course_id.in_(course_ids),
+                )
+            ).all()
+        }
+        for cid in course_ids:
+            last = reads.get(cid, 0)
+            unread = int(
+                db.scalar(
+                    select(func.count())
+                    .select_from(CourseMessage)
+                    .where(
+                        CourseMessage.course_id == cid,
+                        CourseMessage.id > last,
+                        CourseMessage.sender_id != user.id,
+                    )
+                )
+                or 0
+            )
+            if unread:
+                courses[str(cid)] = unread
+
+    return build_unread_count(private, courses)
 
 
 @router.get("/conversations", response_model=list[ConversationSummary])
@@ -134,7 +369,6 @@ def thread_with(
     other = db.get(User, user_id)
     if other is None:
         raise HTTPException(status_code=404, detail="User not found")
-    # Ver el hilo: cualquiera de los dos lados; no hace falta relation previa
     rows = db.scalars(
         select(Message)
         .where(

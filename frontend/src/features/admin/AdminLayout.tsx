@@ -29,7 +29,7 @@ export function AdminLayout() {
           <NavLink to="/admin/users" className={navClass}>
             <span aria-hidden>☺</span> Usuarios
           </NavLink>
-          <NavLink to="/admin/messages" className={navClass}>
+          <NavLink to="/messages" className={navClass}>
             <span aria-hidden>✉</span> Mensajes
           </NavLink>
           <NavLink to="/admin/observer" className={navClass}>

@@ -1,21 +1,20 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiSend, type MessagePublic } from "../../../lib/api";
+import { apiSend, type CourseMessagePublic } from "../../../lib/api";
 import { showToast } from "../../../components/ui/Toast";
 
 type Props = {
-  recipientId: number;
+  courseId: number;
   onSent?: () => void;
 };
 
-export function MessageComposer({ recipientId, onSent }: Props) {
+export function CourseComposer({ courseId, onSent }: Props) {
   const [body, setBody] = useState("");
 
   const send = useMutation({
     mutationFn: () =>
-      apiSend<MessagePublic>("POST", "/messages", {
-        recipient_id: recipientId,
+      apiSend<CourseMessagePublic>("POST", `/courses/${courseId}/chat`, {
         body: body.trim(),
       }),
     onSuccess: () => {
@@ -37,15 +36,15 @@ export function MessageComposer({ recipientId, onSent }: Props) {
     <form
       onSubmit={onSubmit}
       className="flex gap-2 border-t border-border p-3"
-      aria-label="Redactar mensaje"
+      aria-label="Redactar mensaje de curso"
     >
       <input
         className="flex-1 rounded-full border border-border bg-bg px-4 py-2 text-sm outline-none focus:border-primary"
-        placeholder="Escribe un mensaje…"
+        placeholder="Escribe al curso…"
         value={body}
         maxLength={4000}
         onChange={(e) => setBody(e.target.value)}
-        aria-label="Mensaje"
+        aria-label="Mensaje de curso"
       />
       <button
         type="submit"

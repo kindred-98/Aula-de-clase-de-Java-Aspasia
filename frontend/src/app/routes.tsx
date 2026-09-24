@@ -16,12 +16,14 @@ import { CalendarPage } from "../features/calendar/CalendarPage";
 import { RubricsPage } from "../features/rubrics/RubricsPage";
 import { AccountPrivacyPage } from "../features/account/AccountPrivacyPage";
 import { AccountSettingsPage } from "../features/account/AccountSettingsPage";
+import { MessagesPage } from "../features/messages/MessagesPage";
+import { PrivateMessagesPage } from "../features/messages/private/PrivateMessagesPage";
+import { CourseMessagesPage } from "../features/messages/course/CourseMessagesPage";
 import { AdminLayout } from "../features/admin/AdminLayout";
 import { AdminDashboardPage } from "../features/admin/dashboard/AdminDashboardPage";
 import { AdminCoursesPage } from "../features/admin/courses/AdminCoursesPage";
 import { AdminCourseDetailPage } from "../features/admin/courses/AdminCourseDetailPage";
 import { AdminUsersPage } from "../features/admin/users/AdminUsersPage";
-import { AdminMessagesPage } from "../features/admin/messages/AdminMessagesPage";
 import { AdminObserverPage } from "../features/admin/observer/AdminObserverPage";
 import { AdminAuditPage } from "../features/admin/audit/AdminAuditPage";
 import { ImportCsvPage } from "../features/admin/import/ImportCsvPage";
@@ -145,6 +147,17 @@ export function AppRoutes() {
           }
         />
         <Route
+          path="/messages"
+          element={
+            <RequireAuth>
+              <MessagesPage />
+            </RequireAuth>
+          }
+        >
+          <Route index element={<PrivateMessagesPage />} />
+          <Route path="course" element={<CourseMessagesPage />} />
+        </Route>
+        <Route
           path="/admin"
           element={
             <RequireAuth>
@@ -158,7 +171,7 @@ export function AppRoutes() {
           <Route path="courses" element={<AdminCoursesPage />} />
           <Route path="courses/:courseId" element={<AdminCourseDetailPage />} />
           <Route path="users" element={<AdminUsersPage />} />
-          <Route path="messages" element={<AdminMessagesPage />} />
+          <Route path="messages" element={<Navigate to="/messages" replace />} />
           <Route path="observer" element={<AdminObserverPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
           <Route path="import" element={<ImportCsvPage />} />

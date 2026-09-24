@@ -4,7 +4,7 @@ const actions = [
   { to: "/admin/courses?new=1", label: "Nuevo curso", desc: "Nombre, código y aula" },
   { to: "/admin/users?new=1", label: "Nuevo usuario", desc: "Admin, profe o alumno" },
   { to: "/admin/import", label: "Importar CSV", desc: "Alta masiva con PINs" },
-  { to: "/admin/messages", label: "Escribir mensaje", desc: "Chat con el centro" },
+  { to: "/messages", label: "Escribir mensaje", desc: "Chat privado y por curso" },
   { to: "/admin/observer", label: "Ver aula", desc: "Entregas y notas" },
   { to: "/admin/tools", label: "Clonar / notas", desc: "Plantillas y CSV" },
 ];

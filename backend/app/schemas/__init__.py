@@ -44,8 +44,20 @@ from app.schemas.course import (
     SeatAssign,
     SeatPublic,
 )
+from app.schemas.course_message import (
+    CourseChatPage,
+    CourseChatRoomSummary,
+    CourseMessageCreate,
+    CourseMessagePublic,
+)
 from app.schemas.dashboard import AdminDashboardStats, ObserverResponse, ObserverSubmissionRow
-from app.schemas.message import ConversationSummary, MessageCreate, MessagePublic
+from app.schemas.message import (
+    ConversationSummary,
+    MessageCreate,
+    MessageDirectoryEntry,
+    MessagePublic,
+    UnreadCountResponse,
+)
 from app.schemas.phase3 import (
     AttendanceBulkRequest,
     AttendanceDayResponse,
@@ -94,7 +106,11 @@ __all__ = [
     "ClassroomSeat",
     "CloneCourseRequest",
     "ConversationSummary",
+    "CourseChatPage",
+    "CourseChatRoomSummary",
     "CourseCreate",
+    "CourseMessageCreate",
+    "CourseMessagePublic",
     "CoursePublic",
     "CourseUpdate",
     "CsvImportRequest",
@@ -110,6 +126,7 @@ __all__ = [
     "LoginStudentRequest",
     "LogoutRequest",
     "MessageCreate",
+    "MessageDirectoryEntry",
     "MessagePublic",
     "ObserverResponse",
     "ObserverSubmissionRow",
@@ -133,6 +150,7 @@ __all__ = [
     "SubmissionPublic",
     "SubmissionUpdate",
     "TokenResponse",
+    "UnreadCountResponse",
     "UserPublic",
     "UserStatusUpdate",
 ]
