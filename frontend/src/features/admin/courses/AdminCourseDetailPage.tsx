@@ -6,6 +6,7 @@ import { Spinner } from "../../../components/ui/Spinner";
 import { CourseEditForm } from "./CourseEditForm";
 import { EnrollmentManager } from "./EnrollmentManager";
 import { TeacherManager } from "./TeacherManager";
+import { CourseBackupButton } from "../../phasec/CourseBackupButton";
 
 export function AdminCourseDetailPage() {
   const { courseId } = useParams();
@@ -37,7 +38,7 @@ export function AdminCourseDetailPage() {
           </p>
           <h1 className="text-2xl font-bold">{c.name}</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             to={`/courses/${c.id}`}
             className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-bg"
@@ -45,11 +46,18 @@ export function AdminCourseDetailPage() {
             Ver aula
           </Link>
           <Link
+            to={`/courses/${c.id}/gradebook`}
+            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-bg"
+          >
+            Gradebook
+          </Link>
+          <Link
             to={`/admin/observer?course_id=${c.id}`}
             className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-bg"
           >
             Observar entregas
           </Link>
+          <CourseBackupButton courseId={c.id} />
         </div>
       </header>
 

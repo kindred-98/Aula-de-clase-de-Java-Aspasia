@@ -8,11 +8,13 @@ from app.api.v1.routes import (
     attendance,
     auth,
     calendar,
+    calendar_inst,
     course_chat,
     courses,
     health,
     messages,
     phase3,
+    phase_c,
     rubrics,
     sections,
     work,
@@ -29,7 +31,9 @@ api_router.include_router(admin.router)
 api_router.include_router(rubrics.router)
 api_router.include_router(attendance.router)
 api_router.include_router(calendar.router)
+api_router.include_router(calendar_inst.router)
 api_router.include_router(phase3.router)
+api_router.include_router(phase_c.router)
 api_router.include_router(messages.router)
 api_router.include_router(course_chat.router)
 

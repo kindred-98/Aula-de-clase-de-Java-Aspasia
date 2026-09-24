@@ -19,6 +19,11 @@ import { AccountSettingsPage } from "../features/account/AccountSettingsPage";
 import { MessagesPage } from "../features/messages/MessagesPage";
 import { PrivateMessagesPage } from "../features/messages/private/PrivateMessagesPage";
 import { CourseMessagesPage } from "../features/messages/course/CourseMessagesPage";
+import { MultiCourseDashboardPage } from "../features/phasec/MultiCourseDashboardPage";
+import { CenterSettingsPage } from "../features/phasec/CenterSettingsPage";
+import { ReportsPage } from "../features/phasec/ReportsPage";
+import { GradebookPage } from "../features/phasec/GradebookPage";
+import { InstitutionalCalendarPage } from "../features/phasec/InstitutionalCalendarPage";
 import { AdminLayout } from "../features/admin/AdminLayout";
 import { AdminDashboardPage } from "../features/admin/dashboard/AdminDashboardPage";
 import { AdminCoursesPage } from "../features/admin/courses/AdminCoursesPage";
@@ -131,6 +136,22 @@ export function AppRoutes() {
           }
         />
         <Route
+          path="/courses/:courseId/gradebook"
+          element={
+            <RequireAuth>
+              <GradebookPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/calendar"
+          element={
+            <RequireAuth>
+              <InstitutionalCalendarPage />
+            </RequireAuth>
+          }
+        />
+        <Route
           path="/account"
           element={
             <RequireAuth>
@@ -168,6 +189,7 @@ export function AppRoutes() {
           }
         >
           <Route index element={<AdminDashboardPage />} />
+          <Route path="multi" element={<MultiCourseDashboardPage />} />
           <Route path="courses" element={<AdminCoursesPage />} />
           <Route path="courses/:courseId" element={<AdminCourseDetailPage />} />
           <Route path="users" element={<AdminUsersPage />} />
@@ -176,6 +198,8 @@ export function AppRoutes() {
           <Route path="audit" element={<AdminAuditPage />} />
           <Route path="import" element={<ImportCsvPage />} />
           <Route path="tools" element={<AdminToolsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<CenterSettingsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

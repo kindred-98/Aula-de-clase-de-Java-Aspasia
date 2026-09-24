@@ -13,6 +13,7 @@ from app.models.course import (
 )
 from app.models.course_message import CourseMessage, CourseMessageRead
 from app.models.message import Message
+from app.models.system import SystemSetting
 from app.models.user import RefreshToken, User, UserRole
 from app.models.work import (
     Assignment,
@@ -47,6 +48,7 @@ __all__ = [
     "Submission",
     "SubmissionFile",
     "SubmissionStatus",
+    "SystemSetting",
     "User",
     "UserRole",
     "Visibility",

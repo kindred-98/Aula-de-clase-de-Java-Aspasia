@@ -29,6 +29,14 @@ export function AppLayout() {
                   Cursos
                 </NavLink>
                 <NavLink
+                  to="/calendar"
+                  className={({ isActive }) =>
+                    isActive ? "text-primary underline" : "text-muted hover:text-text"
+                  }
+                >
+                  Calendario
+                </NavLink>
+                <NavLink
                   to="/messages"
                   className={({ isActive }) =>
                     isActive ? "text-primary underline" : "text-muted hover:text-text"

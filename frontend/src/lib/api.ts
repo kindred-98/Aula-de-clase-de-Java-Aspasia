@@ -471,6 +471,105 @@ export type CourseChatRoomSummary = {
   last_sender_name: string | null;
 };
 
+export type MultiCourseRow = {
+  course_id: number;
+  name: string;
+  code: string;
+  status: string;
+  enrolled: number;
+  assignments: number;
+  submissions_total: number;
+  submissions_pending: number;
+  completion_rate: number;
+};
+
+export type MultiCourseDashboard = {
+  totals: Record<string, number>;
+  courses: MultiCourseRow[];
+};
+
+export type GradebookCell = {
+  assignment_id: number | null;
+  status: string | null;
+  score: string | null;
+};
+
+export type GradebookColumn = {
+  assignment_id: number;
+  title: string;
+  max_score: string;
+};
+
+export type GradebookStudent = {
+  student_id: number;
+  name: string;
+  username: string | null;
+  cells: Record<string, GradebookCell>;
+  average: string | null;
+};
+
+export type GradebookMatrix = {
+  course_id: number;
+  course_name: string;
+  columns: GradebookColumn[];
+  students: GradebookStudent[];
+};
+
+export type CenterSettings = {
+  center_name: string;
+  support_email: string | null;
+  default_visibility: string;
+  allow_peer_submissions: boolean;
+  pin_length: number;
+  max_upload_mb: number;
+  terms_markdown: string;
+};
+
+export type ReportCourseRow = {
+  course_id: number;
+  name: string;
+  code: string;
+  status: string;
+  enrolled: number;
+  assignments: number;
+  submissions: number;
+  reviewed: number;
+  avg_score: number | null;
+  attendance_present: number;
+  attendance_absent: number;
+};
+
+export type ReportOverview = {
+  generated_at: string;
+  center_name: string;
+  totals: Record<string, number>;
+  courses: ReportCourseRow[];
+};
+
+export type InstitutionalCalendarItem = {
+  kind: string;
+  id: number;
+  title: string;
+  course_id: number;
+  course_name: string;
+  course_code: string;
+  starts_at: string | null;
+  ends_at: string | null;
+};
+
+export type CourseBackup = {
+  exported_at: string;
+  course: Record<string, unknown>;
+  seats: unknown[];
+  teachers: { teacher_id: number; name: string | null }[];
+  enrollments: unknown[];
+  sections: unknown[];
+  rubrics: unknown[];
+  assignments: unknown[];
+  announcements: unknown[];
+  submissions: unknown[];
+};
+
 export async function apiDownload(path: string, filename: string): Promise<void> {
   const headers: Record<string, string> = {};
   const token = getAccessToken();

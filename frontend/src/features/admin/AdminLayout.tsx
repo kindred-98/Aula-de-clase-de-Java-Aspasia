@@ -23,8 +23,11 @@ export function AdminLayout() {
           <NavLink to="/admin" end className={navClass}>
             <span aria-hidden>⌂</span> Dashboard
           </NavLink>
+          <NavLink to="/admin/multi" className={navClass}>
+            <span aria-hidden>▦</span> Multi-curso
+          </NavLink>
           <NavLink to="/admin/courses" className={navClass}>
-            <span aria-hidden>▦</span> Cursos
+            <span aria-hidden>▤</span> Cursos
           </NavLink>
           <NavLink to="/admin/users" className={navClass}>
             <span aria-hidden>☺</span> Usuarios
@@ -38,11 +41,17 @@ export function AdminLayout() {
           <NavLink to="/admin/import" className={navClass}>
             <span aria-hidden>⇪</span> Importar CSV
           </NavLink>
+          <NavLink to="/admin/reports" className={navClass}>
+            <span aria-hidden>▥</span> Reportes
+          </NavLink>
           <NavLink to="/admin/audit" className={navClass}>
             <span aria-hidden>☰</span> Auditoría
           </NavLink>
           <NavLink to="/admin/tools" className={navClass}>
             <span aria-hidden>⚒</span> Herramientas
+          </NavLink>
+          <NavLink to="/admin/settings" className={navClass}>
+            <span aria-hidden>⚙</span> Ajustes
           </NavLink>
         </nav>
         <button

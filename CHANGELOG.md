@@ -2,6 +2,58 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase C] — 2026-09-24
+
+### Hecho
+
+- Backend (LMS profesional):
+  - Dashboard multi-curso: `GET /admin/dashboard/multi` con totales
+    (cursos, matrículas, tareas, entregas, pendientes) y fila por curso
+    con tasa de avance; solo admin.
+  - Gradebook matriz: `GET /courses/{id}/gradebook` (staff del curso)
+    con columnas = tareas, filas = alumnos matriculados, celda con
+    estado + nota (última evaluación) y media por alumno.
+  - Ajustes del centro: tabla `system_settings` (migración
+    `c8f5e1a2b3d4`), `GET/PUT /admin/settings` (nombre, email soporte,
+    visibilidad por defecto, entregas entre compañeros, largo PIN,
+    tamaño máx. de upload, términos Markdown) con audit
+    `settings.updated`.
+  - Reportes: `GET /admin/reports/overview` (totales + por curso:
+    matrículas, entregas, revisadas, nota media, asistencia) y
+    `GET /admin/reports/overview.csv` con `Content-Disposition`.
+  - Calendario institucional: `GET /calendar/institutional` (tareas con
+    `due_at` + anuncios de los cursos visibles según rol; admin→todos,
+    teacher→sus cursos, student→matrículas activas).
+  - Backup de curso: `GET /courses/{id}/backup` (solo admin) en JSON
+    con curso, seats, profes, matrículas, secciones, rúbricas, tareas,
+    anuncios y entregas con notas; audit `course.backup`.
+  - Tests Fase C (`tests/test_phase_c.py`, 6 tests): permisos por rol,
+    gradebook, settings roundtrip, reportes+CSV, visibilidad del
+    calendario y contenido del backup; `test_models` actualizado con
+    `system_settings`.
+  - ruff + format + mypy + pytest+cov **98 tests, 86%**.
+- Frontend modular `features/phasec/` (1 responsabilidad por archivo):
+  - `/admin/multi`: dashboard multi-curso (KPIs + tabla con avance).
+  - `/admin/settings`: ajustes del centro (formulario PUT + feedback).
+  - `/admin/reports`: informe con totales, tabla por curso y export CSV.
+  - `/courses/:id/gradebook`: matriz de notas (columnas tareas, media).
+  - `/calendar`: calendario institucional (tareas + anuncios por curso).
+  - `CourseBackupButton` en el detalle de curso admin (export JSON).
+  - Nav: AdminLayout con Multi-curso, Reportes y Ajustes; nav global
+    con Calendario; enlace Gradebook en detalle de curso.
+  - Tipos nuevos en `lib/api.ts` (multi, gradebook, settings, reports,
+    calendar, backup).
+  - Tests `PhaseC.test.tsx` (5); lint/format/typecheck/build
+    **27 tests frontend** en verde.
+- Migración local: `alembic upgrade head` → `c8f5e1a2b3d4`.
+
+### Pendiente / limitaciones
+
+- Ajustes del centro no incluyen políticas de sesión (Fase D: sesiones
+  activas y desbloqueo de cuentas).
+- Backup JSON no incluye archivos binarios de entregas (solo metadatos
+  y notas); descarga directa desde el navegador.
+
 ## [Fase B] — 2026-09-24
 
 ### Hecho

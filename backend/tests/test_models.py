@@ -49,6 +49,7 @@ def test_all_tables_created() -> None:
         "messages",
         "course_messages",
         "course_message_reads",
+        "system_settings",
     }
     session.close()
 
