@@ -2,6 +2,54 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase T] — 2026-09-25
+
+### Hecho
+
+- Backend (Profesorado):
+  - Endpoints de docente (`routes/teacher.py`): `GET /teacher/dashboard`
+    (totales, cursos con pendientes y próxima entrega, próximos
+    vencimientos y actividad reciente), `GET /teacher/queue` (cola
+    paginada con filtros por curso, estado y búsqueda) y
+    `GET /teacher/pending-count`.
+  - Panel de curso (`routes/courses.py`): `GET /courses/{id}/overview`
+    (progreso por tarea + estado por alumno) y
+    `GET /courses/{id}/students/{student_id}` (nota media, asistencia y
+    entregas), accesibles al staff del curso (teacher o admin).
+  - Exportación de notas reutilizando `GET /courses/{id}/export/grades.csv`.
+  - ruff + format + mypy + pytest+cov **114 tests, 86.11%**.
+- Frontend `features/teacher/`:
+  - T0: `TeacherLayout` con nav por secciones, guard `RequireTeacher`
+    (teacher+admin) y rutas `/teacher`, `/teacher/queue`,
+    `/teacher/courses/:id` y `/teacher/courses/:id/students/:studentId`.
+  - T1: dashboard con KPIs, tarjetas de curso (enlazan al panel del
+    curso), próximos vencimientos y actividad reciente.
+  - T2: cola de evaluación con filtros, tabla de entregas y badge
+    "Por revisar" con refresco cada 30 s (`usePendingCount`).
+  - T3: panel de curso (accesos rápidos, progreso por tarea y tarjetas
+    de alumno) y ficha del alumno (media, asistencia y entregas).
+  - T4:
+    - `usePermissions` (`GET /auth/permissions`) y guard
+      `RequirePermission`; `/admin/reports` sale del árbol
+      `RequireAdmin` y pasa a exigir `reports.view` (admin entra
+      directo).
+    - `AdminLayout` oculta las secciones solo-admin a no-admins
+      (conserva Mensajes, Reportes y cerrar sesión).
+    - `TeacherLayout`: enlace "Informes" condicional a `reports.view`
+      y sidebar responsive (fila envuelta en móvil, columna en `lg`).
+    - Botón "Exportar notas CSV" en el panel del curso (`apiDownload`
+      con toast de confirmación y de error).
+    - Contraste AA: `--color-warning` en claro `#d97706` → `#b45309`.
+  - Tests `TeacherPhaseT.test.tsx` (12, 5 nuevos en T4); lint/format/
+    typecheck/build **43 tests frontend** en verde.
+
+### Pendiente / limitaciones
+
+- El enlace "Informes" depende del permiso `reports.view` (Fase D); un
+  rol personalizado sin ese permiso no lo ve, por diseño.
+- No se añaden vistas de reportes propias del profesorado: se reutiliza
+  el informe de Fase C en `/admin/reports`.
+
 ## [Fase D] — 2026-09-24
 
 ### Hecho
