@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { apiGet, type CourseOverview } from "../../../lib/api";
+import { apiDownload, apiGet, type CourseOverview } from "../../../lib/api";
+import { showToast } from "../../../components/ui/Toast";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { ErrorState } from "../../../components/ui/ErrorState";
 import { Spinner } from "../../../components/ui/Spinner";
@@ -18,11 +20,24 @@ const quickLinks: { to: string; label: string }[] = [
 
 export function TeacherCourseOverviewPage() {
   const { courseId } = useParams();
+  const [downloading, setDownloading] = useState(false);
   const overview = useQuery({
     queryKey: ["teacher-course-overview", courseId],
     queryFn: ({ signal }) => apiGet<CourseOverview>(`/courses/${courseId}/overview`, signal),
     enabled: Boolean(courseId),
   });
+
+  async function onExportGrades() {
+    setDownloading(true);
+    try {
+      await apiDownload(`/courses/${courseId}/export/grades.csv`, `notas-curso-${courseId}.csv`);
+      showToast("CSV descargado");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "No se pudo exportar", "error");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (overview.isPending) return <Spinner label="Cargando panel del curso…" />;
   if (overview.isError)
@@ -39,9 +54,19 @@ export function TeacherCourseOverviewPage() {
           <p className="text-sm text-muted">Panel del curso</p>
           <h1 className="text-2xl font-bold">{d.course_name}</h1>
         </div>
-        <Link to="/teacher" className="text-sm text-primary hover:underline">
-          ← Volver al panel
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void onExportGrades()}
+            disabled={downloading}
+            className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm transition hover:border-primary disabled:opacity-60"
+          >
+            {downloading ? "Exportando…" : "Exportar notas CSV"}
+          </button>
+          <Link to="/teacher" className="text-sm text-primary hover:underline">
+            ← Volver al panel
+          </Link>
+        </div>
       </header>
 
       <section aria-label="Accesos rápidos">

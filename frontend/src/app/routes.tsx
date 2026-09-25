@@ -5,6 +5,7 @@ import { NotFoundPage } from "./NotFoundPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ChangeCredentialsPage } from "../features/auth/ChangeCredentialsPage";
 import { useAuth } from "../features/auth/AuthContext";
+import { usePermissions } from "../features/auth/usePermissions";
 import { CourseListPage } from "../features/courses/CourseListPage";
 import { ClassroomPage } from "../features/courses/ClassroomPage";
 import { ContentPage } from "../features/content/ContentPage";
@@ -42,6 +43,7 @@ import { AdminObserverPage } from "../features/admin/observer/AdminObserverPage"
 import { AdminAuditPage } from "../features/admin/audit/AdminAuditPage";
 import { ImportCsvPage } from "../features/admin/import/ImportCsvPage";
 import { AdminToolsPage } from "../features/admin/tools/AdminToolsPage";
+import { Spinner } from "../components/ui/Spinner";
 import type { ReactNode } from "react";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -61,6 +63,16 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 function RequireTeacher({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   if (user && user.role !== "teacher" && user.role !== "admin") return <Navigate to="/" replace />;
+  return children;
+}
+
+function RequirePermission({ permission, children }: { permission: string; children: ReactNode }) {
+  const { user } = useAuth();
+  const permissions = usePermissions();
+  if (user && user.role === "admin") return children;
+  if (permissions.isPending) return <Spinner label="Comprobando permisos…" />;
+  const effective = permissions.data?.effective ?? [];
+  if (permissions.isError || !effective.includes(permission)) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -213,12 +225,23 @@ export function AppRoutes() {
           <Route path="audit" element={<AdminAuditPage />} />
           <Route path="import" element={<ImportCsvPage />} />
           <Route path="tools" element={<AdminToolsPage />} />
-          <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<CenterSettingsPage />} />
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="cohorts" element={<CohortsPage />} />
           <Route path="roles" element={<RolesPage />} />
           <Route path="sessions" element={<SessionsPage />} />
+        </Route>
+        <Route
+          path="/admin/reports"
+          element={
+            <RequireAuth>
+              <RequirePermission permission="reports.view">
+                <AdminLayout />
+              </RequirePermission>
+            </RequireAuth>
+          }
+        >
+          <Route index element={<ReportsPage />} />
         </Route>
         <Route
           path="/teacher"

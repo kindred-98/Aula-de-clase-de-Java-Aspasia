@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { usePermissions } from "../auth/usePermissions";
 import { usePendingCount } from "./usePendingCount";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -11,8 +12,11 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 export function TeacherLayout() {
   const { user, logout } = useAuth();
+  const permissions = usePermissions();
   const pending = usePendingCount();
   const pendingTotal = pending.data?.pending ?? 0;
+  const canSeeReports =
+    user?.role === "admin" || (permissions.data?.effective ?? []).includes("reports.view");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
@@ -22,7 +26,10 @@ export function TeacherLayout() {
           <p className="truncate font-semibold">{user?.name ?? "Docente"}</p>
           <p className="truncate text-xs text-muted">{user?.email}</p>
         </div>
-        <nav aria-label="Secciones del panel del profesor" className="flex flex-col gap-1">
+        <nav
+          aria-label="Secciones del panel del profesor"
+          className="flex flex-row flex-wrap gap-1 lg:flex-col"
+        >
           <NavLink to="/teacher" end className={navClass}>
             <span aria-hidden>⌂</span> Inicio
           </NavLink>
@@ -46,6 +53,11 @@ export function TeacherLayout() {
           <NavLink to="/calendar" className={navClass}>
             <span aria-hidden>◷</span> Calendario
           </NavLink>
+          {canSeeReports ? (
+            <NavLink to="/admin/reports" className={navClass}>
+              <span aria-hidden>▥</span> Informes
+            </NavLink>
+          ) : null}
         </nav>
         <button
           type="button"

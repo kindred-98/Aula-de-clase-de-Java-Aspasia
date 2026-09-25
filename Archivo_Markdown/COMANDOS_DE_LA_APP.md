@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="360" />
+<img src="../assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="360" />
 
 # 🚀 Guía de Comandos
 
@@ -539,7 +539,7 @@ Para decisiones de arquitectura, consulta [PLAN.md](./PLAN.md).
 
 <div align="center">
 
-<img src="./assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="220" />
+<img src="../assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="220" />
 
 **Aspasia · La formación de tu futuro**  
 Guía de comandos · Aula Virtual Multi-Curso

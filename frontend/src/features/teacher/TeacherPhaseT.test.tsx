@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -28,8 +29,9 @@ function json(body: unknown): Response {
   });
 }
 
-function authAs(role: "teacher" | "student" | "admin") {
+function authAs(role: "teacher" | "student" | "admin", effective?: string[]) {
   const name = role === "teacher" ? "Profe" : role === "admin" ? "Admin" : "Ana";
+  const granted = effective ?? (role === "admin" ? ["reports.view"] : []);
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string) => {
@@ -46,6 +48,32 @@ function authAs(role: "teacher" | "student" | "admin") {
             created_at: new Date().toISOString(),
           }),
         );
+      if (url.includes("/auth/permissions"))
+        return json({
+          permissions: ["reports.view", "grades.edit", "attendance.manage"],
+          effective: granted,
+        });
+      if (url.includes("/admin/reports/overview"))
+        return json({
+          generated_at: "2026-09-25T10:00:00Z",
+          center_name: "Aspasia",
+          totals: { courses: 1, enrolled: 2, submissions: 3, reviewed: 1 },
+          courses: [
+            {
+              course_id: 1,
+              name: "Java",
+              code: "JAVA",
+              status: "active",
+              enrolled: 2,
+              assignments: 2,
+              submissions: 3,
+              reviewed: 1,
+              avg_score: 87.5,
+              attendance_present: 4,
+              attendance_absent: 1,
+            },
+          ],
+        });
       if (url.includes("/teacher/dashboard"))
         return Promise.resolve(
           json({
@@ -242,5 +270,70 @@ describe("Fase T0 — estructura del panel del profesor", () => {
     renderRoutes(["/teacher"]);
 
     expect(await screen.findByRole("heading", { name: /panel del profesor/i })).toBeInTheDocument();
+  });
+});
+
+describe("Fase T4 — permisos, reportes y export", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    localStorage.setItem("aula.access_token", "session-token");
+    localStorage.setItem("aula.must_change", "0");
+  });
+
+  it("oculta el enlace Informes sin reports.view", async () => {
+    authAs("teacher");
+    renderRoutes(["/teacher"]);
+
+    const nav = await screen.findByRole("navigation", { name: /panel del profesor/i });
+    expect(within(nav).queryByRole("link", { name: /informes/i })).not.toBeInTheDocument();
+  });
+
+  it("un teacher con reports.view entra en /admin/reports", async () => {
+    const user = userEvent.setup();
+    authAs("teacher", ["reports.view"]);
+    renderRoutes(["/teacher"]);
+
+    const teacherNav = await screen.findByRole("navigation", { name: /panel del profesor/i });
+    await user.click(within(teacherNav).getByRole("link", { name: /informes/i }));
+
+    expect(await screen.findByRole("heading", { name: "Reportes" })).toBeInTheDocument();
+    const adminNav = await screen.findByRole("navigation", { name: /administración/i });
+    expect(within(adminNav).getByRole("link", { name: /mensajes/i })).toBeInTheDocument();
+    expect(within(adminNav).getByRole("link", { name: /reportes/i })).toBeInTheDocument();
+    expect(within(adminNav).queryByRole("link", { name: /dashboard/i })).not.toBeInTheDocument();
+    expect(within(adminNav).queryByRole("link", { name: /usuarios/i })).not.toBeInTheDocument();
+  });
+
+  it("un teacher sin reports.view es redirigido desde /admin/reports", async () => {
+    authAs("teacher");
+    renderRoutes(["/admin/reports"]);
+
+    expect(
+      await screen.findByRole("heading", { name: /plataforma de aula virtual/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("un admin accede directo a /admin/reports", async () => {
+    authAs("admin");
+    renderRoutes(["/admin/reports"]);
+
+    expect(await screen.findByRole("heading", { name: "Reportes" })).toBeInTheDocument();
+    const adminNav = await screen.findByRole("navigation", { name: /administración/i });
+    expect(within(adminNav).getByRole("link", { name: /dashboard/i })).toBeInTheDocument();
+  });
+
+  it("exporta las notas del curso en CSV", async () => {
+    const createObjectURL = vi.fn(() => "blob:mock");
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal("URL", { ...URL, createObjectURL, revokeObjectURL });
+    const user = userEvent.setup();
+    authAs("teacher");
+    renderRoutes(["/teacher/courses/1"]);
+
+    const button = await screen.findByRole("button", { name: /exportar notas csv/i });
+    await user.click(button);
+
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
   });
 });

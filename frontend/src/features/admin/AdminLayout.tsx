@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { usePermissions } from "../auth/usePermissions";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
@@ -10,6 +11,9 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
+  const permissions = usePermissions();
+  const isAdmin = user?.role === "admin";
+  const canSeeReports = isAdmin || (permissions.data?.effective ?? []).includes("reports.view");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
@@ -20,51 +24,65 @@ export function AdminLayout() {
           <p className="truncate text-xs text-muted">{user?.email}</p>
         </div>
         <nav aria-label="Secciones de administración" className="flex flex-col gap-1">
-          <NavLink to="/admin" end className={navClass}>
-            <span aria-hidden>⌂</span> Dashboard
-          </NavLink>
-          <NavLink to="/admin/multi" className={navClass}>
-            <span aria-hidden>▦</span> Multi-curso
-          </NavLink>
-          <NavLink to="/admin/courses" className={navClass}>
-            <span aria-hidden>▤</span> Cursos
-          </NavLink>
-          <NavLink to="/admin/users" className={navClass}>
-            <span aria-hidden>☺</span> Usuarios
-          </NavLink>
+          {isAdmin ? (
+            <>
+              <NavLink to="/admin" end className={navClass}>
+                <span aria-hidden>⌂</span> Dashboard
+              </NavLink>
+              <NavLink to="/admin/multi" className={navClass}>
+                <span aria-hidden>▦</span> Multi-curso
+              </NavLink>
+              <NavLink to="/admin/courses" className={navClass}>
+                <span aria-hidden>▤</span> Cursos
+              </NavLink>
+              <NavLink to="/admin/users" className={navClass}>
+                <span aria-hidden>☺</span> Usuarios
+              </NavLink>
+            </>
+          ) : null}
           <NavLink to="/messages" className={navClass}>
             <span aria-hidden>✉</span> Mensajes
           </NavLink>
-          <NavLink to="/admin/observer" className={navClass}>
-            <span aria-hidden>◉</span> Observador
-          </NavLink>
-          <NavLink to="/admin/import" className={navClass}>
-            <span aria-hidden>⇪</span> Importar CSV
-          </NavLink>
-          <NavLink to="/admin/reports" className={navClass}>
-            <span aria-hidden>▥</span> Reportes
-          </NavLink>
-          <NavLink to="/admin/categories" className={navClass}>
-            <span aria-hidden>⊞</span> Categorías
-          </NavLink>
-          <NavLink to="/admin/cohorts" className={navClass}>
-            <span aria-hidden>◍</span> Cohorts
-          </NavLink>
-          <NavLink to="/admin/roles" className={navClass}>
-            <span aria-hidden>◆</span> Roles
-          </NavLink>
-          <NavLink to="/admin/sessions" className={navClass}>
-            <span aria-hidden>◷</span> Sesiones
-          </NavLink>
-          <NavLink to="/admin/audit" className={navClass}>
-            <span aria-hidden>☰</span> Auditoría
-          </NavLink>
-          <NavLink to="/admin/tools" className={navClass}>
-            <span aria-hidden>⚒</span> Herramientas
-          </NavLink>
-          <NavLink to="/admin/settings" className={navClass}>
-            <span aria-hidden>⚙</span> Ajustes
-          </NavLink>
+          {isAdmin ? (
+            <>
+              <NavLink to="/admin/observer" className={navClass}>
+                <span aria-hidden>◉</span> Observador
+              </NavLink>
+              <NavLink to="/admin/import" className={navClass}>
+                <span aria-hidden>⇪</span> Importar CSV
+              </NavLink>
+            </>
+          ) : null}
+          {canSeeReports ? (
+            <NavLink to="/admin/reports" className={navClass}>
+              <span aria-hidden>▥</span> Reportes
+            </NavLink>
+          ) : null}
+          {isAdmin ? (
+            <>
+              <NavLink to="/admin/categories" className={navClass}>
+                <span aria-hidden>⊞</span> Categorías
+              </NavLink>
+              <NavLink to="/admin/cohorts" className={navClass}>
+                <span aria-hidden>◍</span> Cohorts
+              </NavLink>
+              <NavLink to="/admin/roles" className={navClass}>
+                <span aria-hidden>◆</span> Roles
+              </NavLink>
+              <NavLink to="/admin/sessions" className={navClass}>
+                <span aria-hidden>◷</span> Sesiones
+              </NavLink>
+              <NavLink to="/admin/audit" className={navClass}>
+                <span aria-hidden>☰</span> Auditoría
+              </NavLink>
+              <NavLink to="/admin/tools" className={navClass}>
+                <span aria-hidden>⚒</span> Herramientas
+              </NavLink>
+              <NavLink to="/admin/settings" className={navClass}>
+                <span aria-hidden>⚙</span> Ajustes
+              </NavLink>
+            </>
+          ) : null}
         </nav>
         <button
           type="button"
