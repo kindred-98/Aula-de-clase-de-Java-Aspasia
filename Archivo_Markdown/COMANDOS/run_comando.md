@@ -1,4 +1,3 @@
-Arranque local (SQLite ya configurado, migraciones aplicadas). 2 terminales:
 
 # Terminal 1 — API (backend):
 - Nota: En la Terminal 1, antes de arrancar uvicorn:
