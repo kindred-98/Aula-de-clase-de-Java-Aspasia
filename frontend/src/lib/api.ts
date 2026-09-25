@@ -710,11 +710,20 @@ export type StudentRecentEvaluation = {
   evaluated_at: string | null;
 };
 
+export type StudentPendingItem = {
+  course_id: number;
+  course_name: string;
+  assignment_id: number;
+  title: string;
+  due_at: string | null;
+};
+
 export type StudentDashboard = {
   totals: StudentTotals;
   courses: StudentDashboardCourse[];
   upcoming: StudentUpcomingItem[];
   recent: StudentRecentEvaluation[];
+  pending_items: StudentPendingItem[];
 };
 
 export type TeacherQueueItem = {

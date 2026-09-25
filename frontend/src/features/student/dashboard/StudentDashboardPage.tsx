@@ -7,8 +7,8 @@ import { Spinner } from "../../../components/ui/Spinner";
 import { ActivityList } from "./ActivityList";
 import { CourseCard } from "./CourseCard";
 import { KpiCard } from "./KpiCard";
+import { PendingList } from "./PendingList";
 import { QuickActions } from "./QuickActions";
-import { UpcomingList } from "./UpcomingList";
 
 export function StudentDashboardPage() {
   const dashboard = useQuery({
@@ -78,7 +78,7 @@ export function StudentDashboardPage() {
       </section>
 
       <section aria-label="Actividad" className="grid gap-4 lg:grid-cols-2">
-        <UpcomingList items={d.upcoming} />
+        <PendingList items={d.pending_items} />
         <ActivityList items={d.recent} />
       </section>
     </div>

@@ -1,4 +1,4 @@
-"""Fase S1: dashboard del alumno."""
+"""Fases S1 y S2: dashboard y contador de pendientes del alumno."""
 
 from __future__ import annotations
 
@@ -108,6 +108,8 @@ def test_student_dashboard_aggregates(client: TestClient, db: Session) -> None:
     assert [item["assignment_id"] for item in data["upcoming"]] == [soon.id, later.id]
     assert data["upcoming"][0]["course_name"] == "Java"
 
+    assert [item["assignment_id"] for item in data["pending_items"]] == [soon.id, later.id]
+
     assert len(data["recent"]) == 1
     assert data["recent"][0]["assignment_title"] == "Quiz"
     assert data["recent"][0]["score"] == 87.5
@@ -159,3 +161,80 @@ def test_student_dashboard_forbidden_for_teacher_and_admin_sees_all(
     resp = client.get("/api/v1/student/dashboard", headers=auth_headers(admin))
     assert resp.status_code == 200, resp.text
     assert {c["code"] for c in resp.json()["courses"]} == {"S1G1", "S1G2"}
+
+
+def test_student_pending_count(client: TestClient, db: Session) -> None:
+    teacher = make_teacher(db, email="s2-profe@aula.test")
+    student = make_student(db, name="Ana", username="s2-ana")
+
+    empty = client.get("/api/v1/student/pending-count", headers=auth_headers(student))
+    assert empty.status_code == 200, empty.text
+    assert empty.json() == {"pending": 0}
+
+    course = make_course(db, code="S2C1")
+    assign_teacher(db, course, teacher)
+    enroll(db, course, student)
+
+    _seed_assignment(db, course, teacher, title="Sin empezar")
+    needs = _seed_assignment(db, course, teacher, title="Rehacer")
+    done = _seed_assignment(db, course, teacher, title="Entregada")
+    db.add(
+        Submission(
+            assignment_id=needs.id,
+            course_id=course.id,
+            student_id=student.id,
+            status=SubmissionStatus.needs_changes,
+        )
+    )
+    db.add(
+        Submission(
+            assignment_id=done.id,
+            course_id=course.id,
+            student_id=student.id,
+            status=SubmissionStatus.submitted,
+        )
+    )
+    db.commit()
+
+    resp = client.get("/api/v1/student/pending-count", headers=auth_headers(student))
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == {"pending": 2}
+
+    denied = client.get("/api/v1/student/pending-count", headers=auth_headers(teacher))
+    assert denied.status_code == 403
+
+
+def test_student_dashboard_pending_items_include_overdue_without_date(
+    client: TestClient, db: Session
+) -> None:
+    teacher = make_teacher(db, email="s2-profe2@aula.test")
+    student = make_student(db, name="Ana", username="s2-ana2")
+
+    course = make_course(db, code="S2C2")
+    assign_teacher(db, course, teacher)
+    enroll(db, course, student)
+
+    overdue = _seed_assignment(
+        db, course, teacher, title="Atrasada", due_at=datetime.now(UTC) - timedelta(days=1)
+    )
+    future = _seed_assignment(
+        db, course, teacher, title="Futura", due_at=datetime.now(UTC) + timedelta(days=5)
+    )
+    no_due = _seed_assignment(db, course, teacher, title="Sin fecha")
+
+    data = client.get("/api/v1/student/dashboard", headers=auth_headers(student)).json()
+
+    titles = [item["title"] for item in data["pending_items"]]
+    assert titles == ["Atrasada", "Futura", "Sin fecha"]
+    assert [item["assignment_id"] for item in data["pending_items"]] == [
+        overdue.id,
+        future.id,
+        no_due.id,
+    ]
+    assert data["pending_items"][2]["due_at"] is None
+
+    upcoming_ids = [item["assignment_id"] for item in data["upcoming"]]
+    assert overdue.id not in upcoming_ids
+    assert no_due.id not in upcoming_ids
+    assert upcoming_ids == [future.id]
+    assert data["totals"]["pending_submissions"] == 3

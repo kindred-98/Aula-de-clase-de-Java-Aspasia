@@ -29,7 +29,7 @@ function json(body: unknown): Response {
   });
 }
 
-function authAs(role: "teacher" | "student" | "admin") {
+function authAs(role: "teacher" | "student" | "admin", pending = 2) {
   const name = role === "teacher" ? "Profe" : role === "admin" ? "Admin" : "Ana";
   vi.stubGlobal(
     "fetch",
@@ -85,8 +85,18 @@ function authAs(role: "teacher" | "student" | "admin") {
                 evaluated_at: "2026-09-24T10:00:00Z",
               },
             ],
+            pending_items: [
+              {
+                course_id: 1,
+                course_name: "Java",
+                assignment_id: 9,
+                title: "Tarea 9",
+                due_at: "2026-10-01T10:00:00Z",
+              },
+            ],
           }),
         );
+      if (url.includes("/student/pending-count")) return Promise.resolve(json({ pending }));
       return Promise.resolve(json({ total: 0 }));
     }),
   );
@@ -155,16 +165,15 @@ describe("Fase S1 — dashboard del alumno", () => {
     renderRoutes(["/student"]);
 
     expect(await screen.findByRole("heading", { name: /panel del alumno/i })).toBeInTheDocument();
-    expect(screen.getByText("Por entregar")).toBeInTheDocument();
     expect(screen.getByText("Fechas esta semana")).toBeInTheDocument();
     expect(screen.getByText("Evaluadas")).toBeInTheDocument();
     expect(screen.getAllByText("Mis cursos").length).toBeGreaterThan(1);
-    expect(screen.getByText("Próximas entregas")).toBeInTheDocument();
+    expect(screen.getAllByText("Por entregar").length).toBeGreaterThan(1);
     expect(screen.getByText("Evaluaciones recientes")).toBeInTheDocument();
     expect(screen.getAllByText("Tarea 9").length).toBeGreaterThan(1);
     expect(screen.getByText("87.5")).toBeInTheDocument();
     expect((await screen.findAllByText("Java")).length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /por entregar/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /2 por entregar/i })).toBeInTheDocument();
   });
 
   it("muestra estado vacío si no hay cursos matriculados", async () => {
@@ -196,16 +205,50 @@ describe("Fase S1 — dashboard del alumno", () => {
               courses: [],
               upcoming: [],
               recent: [],
+              pending_items: [],
             }),
           );
+        if (url.includes("/student/pending-count")) return Promise.resolve(json({ pending: 0 }));
         return Promise.resolve(json({ total: 0 }));
       }),
     );
     renderRoutes(["/student"]);
 
     expect(await screen.findByText("Sin cursos matriculados")).toBeInTheDocument();
-    expect(screen.getByText("Sin fechas próximas")).toBeInTheDocument();
+    expect(screen.getByText("Nada por entregar")).toBeInTheDocument();
     expect(screen.getByText("Sin evaluaciones")).toBeInTheDocument();
+  });
+});
+
+describe("Fase S2 — badge y pendientes", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    localStorage.setItem("aula.access_token", "session-token");
+    localStorage.setItem("aula.must_change", "0");
+  });
+
+  it("muestra el badge de entregas por entregar en la navegación", async () => {
+    authAs("student");
+    renderRoutes(["/student"]);
+
+    expect(await screen.findByLabelText("2 entregas por entregar")).toBeInTheDocument();
+  });
+
+  it("la sección Por entregar enlaza a cada tarea", async () => {
+    authAs("student");
+    renderRoutes(["/student"]);
+
+    const link = await screen.findByRole("link", { name: /tarea 9/i });
+    expect(link).toHaveAttribute("href", "/courses/1/work/9");
+  });
+
+  it("no muestra badge cuando no hay pendientes", async () => {
+    authAs("student", 0);
+    renderRoutes(["/student"]);
+
+    expect(await screen.findByRole("heading", { name: /panel del alumno/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText(/entregas por entregar/i)).not.toBeInTheDocument();
   });
 });
 

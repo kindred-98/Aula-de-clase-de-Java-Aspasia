@@ -38,8 +38,21 @@ class StudentRecentEvaluation(BaseModel):
     evaluated_at: datetime | None = None
 
 
+class StudentPendingItem(BaseModel):
+    course_id: int
+    course_name: str
+    assignment_id: int
+    title: str
+    due_at: datetime | None = None
+
+
+class StudentPendingCount(BaseModel):
+    pending: int = 0
+
+
 class StudentDashboard(BaseModel):
     totals: StudentTotals = StudentTotals()
     courses: list[StudentDashboardCourse] = []
     upcoming: list[StudentUpcomingItem] = []
     recent: list[StudentRecentEvaluation] = []
+    pending_items: list[StudentPendingItem] = []

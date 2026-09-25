@@ -1,4 +1,4 @@
-"""Fase S1: dashboard agregado del alumno."""
+"""Fases S1 y S2: dashboard agregado y pendientes del alumno."""
 
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
@@ -21,6 +21,8 @@ from app.models import (
 from app.schemas.student import (
     StudentDashboard,
     StudentDashboardCourse,
+    StudentPendingCount,
+    StudentPendingItem,
     StudentRecentEvaluation,
     StudentTotals,
     StudentUpcomingItem,
@@ -31,6 +33,7 @@ router = APIRouter(prefix="/student", tags=["student"])
 
 UPCOMING_LIMIT = 6
 RECENT_LIMIT = 6
+PENDING_LIMIT = 10
 DELIVERED_STATUSES = (SubmissionStatus.submitted, SubmissionStatus.reviewed)
 
 
@@ -55,6 +58,37 @@ def _my_course_ids(db: Session, user: User) -> list[int]:
     return sorted({int(cid) for cid in rows})
 
 
+def _pending_rows(
+    db: Session, user: User, course_ids: list[int]
+) -> list[tuple[int, int, str, datetime | None]]:
+    submission_rows = db.execute(
+        select(Submission.assignment_id, Submission.status)
+        .where(
+            Submission.student_id == user.id,
+            Submission.course_id.in_(course_ids),
+            Submission.assignment_id.is_not(None),
+        )
+        .order_by(Submission.id.desc())
+    ).all()
+    status_by_assignment: dict[int, SubmissionStatus] = {}
+    for assignment_id, status in submission_rows:
+        status_by_assignment.setdefault(int(assignment_id), status)
+
+    assignment_rows = db.execute(
+        select(Assignment.id, Assignment.course_id, Assignment.title, Assignment.due_at).where(
+            Assignment.course_id.in_(course_ids)
+        )
+    ).all()
+
+    pending: list[tuple[int, int, str, datetime | None]] = []
+    for assignment_id, course_id, title, due_at in assignment_rows:
+        status = status_by_assignment.get(int(assignment_id))
+        if status in DELIVERED_STATUSES:
+            continue
+        pending.append((int(assignment_id), int(course_id), title, due_at))
+    return pending
+
+
 @router.get("/dashboard", response_model=StudentDashboard)
 def student_dashboard(
     db: DbSession,
@@ -71,38 +105,17 @@ def student_dashboard(
     ).all()
     course_names = {c.id: c.name for c in courses}
 
-    submission_rows = db.execute(
-        select(Submission.assignment_id, Submission.status)
-        .where(
-            Submission.student_id == user.id,
-            Submission.course_id.in_(course_ids),
-            Submission.assignment_id.is_not(None),
-        )
-        .order_by(Submission.id.desc())
-    ).all()
-    status_by_assignment: dict[int, SubmissionStatus] = {}
-    for assignment_id, status in submission_rows:
-        status_by_assignment.setdefault(int(assignment_id), status)
+    pending_rows = _pending_rows(db, user, course_ids)
 
     now = datetime.now(UTC)
     week_ahead = now + timedelta(days=7)
-
-    assignment_rows = db.execute(
-        select(Assignment.id, Assignment.course_id, Assignment.title, Assignment.due_at).where(
-            Assignment.course_id.in_(course_ids)
-        )
-    ).all()
 
     pending_by_course: dict[int, int] = {}
     next_due_by_course: dict[int, datetime] = {}
     upcoming: list[StudentUpcomingItem] = []
     due_this_week = 0
 
-    for assignment_id, course_id, title, due_at in assignment_rows:
-        status = status_by_assignment.get(int(assignment_id))
-        if status in DELIVERED_STATUSES:
-            continue
-        cid = int(course_id)
+    for assignment_id, cid, title, due_at in pending_rows:
         pending_by_course[cid] = pending_by_course.get(cid, 0) + 1
         if due_at is None:
             continue
@@ -118,7 +131,7 @@ def student_dashboard(
             StudentUpcomingItem(
                 course_id=cid,
                 course_name=course_names.get(cid, ""),
-                assignment_id=int(assignment_id),
+                assignment_id=assignment_id,
                 title=title,
                 due_at=due,
             )
@@ -126,6 +139,24 @@ def student_dashboard(
 
     upcoming.sort(key=lambda item: item.due_at)
     upcoming = upcoming[:UPCOMING_LIMIT]
+
+    pending_items = [
+        StudentPendingItem(
+            course_id=cid,
+            course_name=course_names.get(cid, ""),
+            assignment_id=assignment_id,
+            title=title,
+            due_at=_as_aware(due_at) if due_at is not None else None,
+        )
+        for assignment_id, cid, title, due_at in pending_rows
+    ]
+    pending_items.sort(
+        key=lambda item: (
+            item.due_at is None,
+            item.due_at or datetime.max.replace(tzinfo=UTC),
+        )
+    )
+    pending_items = pending_items[:PENDING_LIMIT]
 
     graded = int(
         db.scalar(
@@ -181,4 +212,23 @@ def student_dashboard(
         graded_submissions=graded,
     )
 
-    return StudentDashboard(totals=totals, courses=course_items, upcoming=upcoming, recent=recent)
+    return StudentDashboard(
+        totals=totals,
+        courses=course_items,
+        upcoming=upcoming,
+        recent=recent,
+        pending_items=pending_items,
+    )
+
+
+@router.get("/pending-count", response_model=StudentPendingCount)
+def student_pending_count(
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> StudentPendingCount:
+    _assert_student(user)
+
+    course_ids = _my_course_ids(db, user)
+    if not course_ids:
+        return StudentPendingCount()
+    return StudentPendingCount(pending=len(_pending_rows(db, user, course_ids)))
