@@ -173,7 +173,8 @@ describe("Fase S1 — dashboard del alumno", () => {
     expect(screen.getAllByText("Tarea 9").length).toBeGreaterThan(1);
     expect(screen.getByText("87.5")).toBeInTheDocument();
     expect((await screen.findAllByText("Java")).length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /2 por entregar/i })).toBeInTheDocument();
+    const courseLink = screen.getByRole("link", { name: /2 por entregar/i });
+    expect(courseLink).toHaveAttribute("href", "/student/courses/1");
   });
 
   it("muestra estado vacío si no hay cursos matriculados", async () => {
@@ -249,6 +250,137 @@ describe("Fase S2 — badge y pendientes", () => {
 
     expect(await screen.findByRole("heading", { name: /panel del alumno/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/entregas por entregar/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("Fase S3 — mi progreso por curso", () => {
+  const progress = {
+    course_id: 1,
+    course_name: "Java",
+    assignment_stats: [
+      {
+        assignment_id: 9,
+        title: "Tarea 9",
+        due_at: "2026-09-01T10:00:00Z",
+        status: "reviewed",
+        score: 87.5,
+        submitted_at: "2026-08-30T10:00:00Z",
+      },
+      {
+        assignment_id: 10,
+        title: "Tarea 10",
+        due_at: "2026-10-01T10:00:00Z",
+        status: "draft",
+        score: null,
+        submitted_at: null,
+      },
+    ],
+    summary: { total: 2, delivered: 1, pending: 1, average_score: 87.5, delivery_pct: 50 },
+    attendance: { present: 5, late: 1, absent: 0, excused: 1, pct: 85.7 },
+  };
+
+  const courseList = [
+    {
+      id: 1,
+      name: "Java",
+      code: "JAVA",
+      description: "Curso de Java",
+      status: "active",
+      layout_rows: 3,
+      layout_cols: 5,
+    },
+  ];
+
+  function authMe(role: string) {
+    return json({
+      id: 1,
+      name: role === "student" ? "Ana" : "Profe",
+      email: `${role}@aula.test`,
+      username: role === "student" ? "ana" : null,
+      role,
+      is_active: true,
+      must_change_credentials: false,
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  function mockFetch(options: { progressStatus?: number; role?: string } = {}) {
+    const { progressStatus = 200, role = "student" } = options;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/auth/me")) return Promise.resolve(authMe(role));
+        if (url.includes("/student/pending-count")) return Promise.resolve(json({ pending: 1 }));
+        if (url.includes("/my-progress"))
+          return Promise.resolve(
+            progressStatus === 200
+              ? json(progress)
+              : new Response("boom", { status: progressStatus }),
+          );
+        if (url.includes("/courses")) return Promise.resolve(json(courseList));
+        return Promise.resolve(json({ total: 0 }));
+      }),
+    );
+  }
+
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    localStorage.setItem("aula.access_token", "session-token");
+    localStorage.setItem("aula.must_change", "0");
+  });
+
+  it("muestra resumen, asistencia y estado por tarea", async () => {
+    mockFetch();
+    renderRoutes(["/student/courses/1"]);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Java" })).toBeInTheDocument();
+    expect(screen.getByText("Mi progreso")).toBeInTheDocument();
+
+    expect(screen.getByText("Entregadas")).toBeInTheDocument();
+    expect(screen.getByText("1/2")).toBeInTheDocument();
+    expect(screen.getByText("50% de entrega")).toBeInTheDocument();
+    expect(screen.getByText("87.5")).toBeInTheDocument();
+    expect(screen.getByText("85.7%")).toBeInTheDocument();
+
+    expect(screen.getByText("Evaluada")).toBeInTheDocument();
+    expect(screen.getByText("87.5 pts")).toBeInTheDocument();
+    expect(screen.getByText("Borrador")).toBeInTheDocument();
+    expect(
+      screen.getByText(/5 presentes .*1 tardes .*0 faltas .*1 justificadas/),
+    ).toBeInTheDocument();
+
+    const taskLink = screen.getByRole("link", { name: "Tarea 9" });
+    expect(taskLink).toHaveAttribute("href", "/courses/1/work/9");
+    expect(screen.getByRole("link", { name: /ir al aula/i })).toHaveAttribute("href", "/courses/1");
+    expect(screen.getByRole("link", { name: /ver tareas/i })).toHaveAttribute(
+      "href",
+      "/courses/1/work",
+    );
+  });
+
+  it("muestra error si no se puede cargar el progreso", async () => {
+    mockFetch({ progressStatus: 500 });
+    renderRoutes(["/student/courses/1"]);
+
+    expect(await screen.findByText("No se pudo cargar tu progreso")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reintentar/i })).toBeInTheDocument();
+  });
+
+  it("enlaza Mi progreso desde Mis cursos solo para students", async () => {
+    mockFetch({ role: "student" });
+    renderRoutes(["/courses"]);
+
+    const link = await screen.findByRole("link", { name: /mi progreso/i });
+    expect(link).toHaveAttribute("href", "/student/courses/1");
+  });
+
+  it("no muestra Mi progreso en Mis cursos para teachers", async () => {
+    mockFetch({ role: "teacher" });
+    renderRoutes(["/courses"]);
+
+    expect(await screen.findByRole("heading", { name: "Mis cursos" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /mi progreso/i })).not.toBeInTheDocument();
   });
 });
 

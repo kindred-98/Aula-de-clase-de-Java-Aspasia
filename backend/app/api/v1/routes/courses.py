@@ -1,6 +1,6 @@
 """Endpoints de cursos, asientos, matrículas y vista de aula."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -30,6 +30,12 @@ from app.schemas.course import (
     EnrollmentPublic,
     SeatAssign,
     SeatPublic,
+)
+from app.schemas.student import (
+    StudentAssignmentProgress,
+    StudentAttendanceSummary,
+    StudentCourseProgress,
+    StudentProgressSummary,
 )
 from app.schemas.teacher import (
     CourseAssignmentStat,
@@ -623,4 +629,92 @@ def student_course_detail(
             pct=_attendance_pct(att),
         ),
         submissions=rows,
+    )
+
+
+MY_DELIVERED_STATUSES = (SubmissionStatus.submitted, SubmissionStatus.reviewed)
+
+
+@router.get("/courses/{course_id}/my-progress", response_model=StudentCourseProgress)
+def my_course_progress(
+    course_id: int,
+    db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
+) -> StudentCourseProgress:
+    """Progreso propio en un curso (matriculado); solo sus entregas y su asistencia."""
+    _user, course, enrollment = require_enrolled(db, user, _get_course(db, course_id))
+    if enrollment is None and user.role is not UserRole.admin:
+        raise HTTPException(status_code=403, detail="Student access required")
+
+    assignments = db.scalars(
+        select(Assignment)
+        .where(Assignment.course_id == course.id)
+        .order_by(Assignment.due_at.asc().nulls_last(), Assignment.id.asc())
+    ).all()
+
+    submission_rows = db.scalars(
+        select(Submission)
+        .where(
+            Submission.course_id == course.id,
+            Submission.student_id == user.id,
+            Submission.assignment_id.is_not(None),
+        )
+        .order_by(Submission.id.desc())
+    ).all()
+    latest: dict[int, Submission] = {}
+    for sub in submission_rows:
+        if sub.assignment_id is not None:
+            latest.setdefault(int(sub.assignment_id), sub)
+
+    stats: list[StudentAssignmentProgress] = []
+    delivered = 0
+    scores: list[float] = []
+    for assignment in assignments:
+        mine = latest.get(assignment.id)
+        score: float | None = None
+        submitted_at: datetime | None = mine.submitted_at if mine is not None else None
+        if mine is not None:
+            if mine.status in MY_DELIVERED_STATUSES:
+                delivered += 1
+            if mine.evaluations:
+                ev = mine.evaluations[0]
+                if ev.score is not None:
+                    score = float(ev.score)
+                    scores.append(score)
+        stats.append(
+            StudentAssignmentProgress(
+                assignment_id=assignment.id,
+                title=assignment.title,
+                due_at=(
+                    assignment.due_at.replace(tzinfo=UTC)
+                    if assignment.due_at is not None and assignment.due_at.tzinfo is None
+                    else assignment.due_at
+                ),
+                status=mine.status.value if mine is not None else "none",
+                score=score,
+                submitted_at=submitted_at,
+            )
+        )
+
+    total = len(stats)
+    att = _attendance_counts(db, course.id).get(user.id, {})
+
+    return StudentCourseProgress(
+        course_id=course.id,
+        course_name=course.name,
+        assignment_stats=stats,
+        summary=StudentProgressSummary(
+            total=total,
+            delivered=delivered,
+            pending=total - delivered,
+            average_score=round(sum(scores) / len(scores), 1) if scores else None,
+            delivery_pct=round(delivered / total * 100, 1) if total else 0.0,
+        ),
+        attendance=StudentAttendanceSummary(
+            present=att.get("present", 0),
+            late=att.get("late", 0),
+            absent=att.get("absent", 0),
+            excused=att.get("excused", 0),
+            pct=_attendance_pct(att),
+        ),
     )

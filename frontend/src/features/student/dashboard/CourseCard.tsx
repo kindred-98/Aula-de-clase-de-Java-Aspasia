@@ -13,7 +13,7 @@ export function CourseCard({ course }: Props) {
 
   return (
     <Link
-      to={`/courses/${course.id}`}
+      to={`/student/courses/${course.id}`}
       className="block rounded-lg border border-border bg-surface p-4 transition hover:border-primary"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">

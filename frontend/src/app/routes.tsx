@@ -33,6 +33,7 @@ import { AdminLayout } from "../features/admin/AdminLayout";
 import { TeacherLayout } from "../features/teacher/TeacherLayout";
 import { StudentLayout } from "../features/student/StudentLayout";
 import { StudentDashboardPage } from "../features/student/dashboard/StudentDashboardPage";
+import { MyProgressPage } from "../features/student/course/MyProgressPage";
 import { TeacherDashboardPage } from "../features/teacher/dashboard/TeacherDashboardPage";
 import { EvaluationQueuePage } from "../features/teacher/queue/EvaluationQueuePage";
 import { TeacherCourseOverviewPage } from "../features/teacher/course/TeacherCourseOverviewPage";
@@ -277,6 +278,7 @@ export function AppRoutes() {
           }
         >
           <Route index element={<StudentDashboardPage />} />
+          <Route path="courses/:courseId" element={<MyProgressPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Route>

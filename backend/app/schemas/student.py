@@ -56,3 +56,36 @@ class StudentDashboard(BaseModel):
     upcoming: list[StudentUpcomingItem] = []
     recent: list[StudentRecentEvaluation] = []
     pending_items: list[StudentPendingItem] = []
+
+
+class StudentAssignmentProgress(BaseModel):
+    assignment_id: int
+    title: str
+    due_at: datetime | None = None
+    status: str = "none"
+    score: float | None = None
+    submitted_at: datetime | None = None
+
+
+class StudentProgressSummary(BaseModel):
+    total: int = 0
+    delivered: int = 0
+    pending: int = 0
+    average_score: float | None = None
+    delivery_pct: float = 0.0
+
+
+class StudentAttendanceSummary(BaseModel):
+    present: int = 0
+    late: int = 0
+    absent: int = 0
+    excused: int = 0
+    pct: float | None = None
+
+
+class StudentCourseProgress(BaseModel):
+    course_id: int
+    course_name: str
+    assignment_stats: list[StudentAssignmentProgress] = []
+    summary: StudentProgressSummary = StudentProgressSummary()
+    attendance: StudentAttendanceSummary = StudentAttendanceSummary()

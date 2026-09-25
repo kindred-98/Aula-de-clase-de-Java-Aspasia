@@ -726,6 +726,39 @@ export type StudentDashboard = {
   pending_items: StudentPendingItem[];
 };
 
+export type StudentAssignmentProgress = {
+  assignment_id: number;
+  title: string;
+  due_at: string | null;
+  status: string;
+  score: number | null;
+  submitted_at: string | null;
+};
+
+export type StudentProgressSummary = {
+  total: number;
+  delivered: number;
+  pending: number;
+  average_score: number | null;
+  delivery_pct: number;
+};
+
+export type StudentAttendanceSummary = {
+  present: number;
+  late: number;
+  absent: number;
+  excused: number;
+  pct: number | null;
+};
+
+export type StudentCourseProgress = {
+  course_id: number;
+  course_name: string;
+  assignment_stats: StudentAssignmentProgress[];
+  summary: StudentProgressSummary;
+  attendance: StudentAttendanceSummary;
+};
+
 export type TeacherQueueItem = {
   submission_id: number;
   course_id: number;

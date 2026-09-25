@@ -4,8 +4,11 @@ import { apiGet, type CoursePublic } from "../../lib/api";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Spinner } from "../../components/ui/Spinner";
+import { useAuth } from "../auth/AuthContext";
 
 export function CourseListPage() {
+  const { user } = useAuth();
+  const isStudent = user?.role === "student";
   const courses = useQuery({
     queryKey: ["courses"],
     queryFn: ({ signal }) => apiGet<CoursePublic[]>("/courses", signal),
@@ -49,6 +52,14 @@ export function CourseListPage() {
                 </p>
                 <p className="mt-2 text-xs uppercase tracking-wide text-muted">{course.status}</p>
               </Link>
+              {isStudent ? (
+                <Link
+                  to={`/student/courses/${course.id}`}
+                  className="mt-1 inline-block text-sm text-primary hover:underline"
+                >
+                  Mi progreso →
+                </Link>
+              ) : null}
             </li>
           ))}
         </ul>

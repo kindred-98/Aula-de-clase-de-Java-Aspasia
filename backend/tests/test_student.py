@@ -1,14 +1,21 @@
-"""Fases S1 y S2: dashboard y contador de pendientes del alumno."""
+"""Fases S1 a S3: dashboard, pendientes y progreso del alumno."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models import Assignment, Evaluation, Submission, SubmissionStatus
+from app.models import (
+    Assignment,
+    AttendanceRecord,
+    AttendanceStatus,
+    Evaluation,
+    Submission,
+    SubmissionStatus,
+)
 from tests.api_helpers import (
     assign_teacher,
     auth_headers,
@@ -238,3 +245,147 @@ def test_student_dashboard_pending_items_include_overdue_without_date(
     assert no_due.id not in upcoming_ids
     assert upcoming_ids == [future.id]
     assert data["totals"]["pending_submissions"] == 3
+
+
+def test_student_my_progress_with_submissions_and_attendance(
+    client: TestClient, db: Session
+) -> None:
+    teacher = make_teacher(db, email="s3-profe@aula.test")
+    student = make_student(db, name="Ana", username="s3-ana")
+    peer = make_student(db, name="Luis", username="s3-luis")
+
+    course = make_course(db, code="S3C1")
+    assign_teacher(db, course, teacher)
+    enroll(db, course, student)
+    enroll(db, course, peer)
+
+    graded = _seed_assignment(
+        db, course, teacher, title="Práctica 1", due_at=datetime.now(UTC) + timedelta(days=3)
+    )
+    undone = _seed_assignment(
+        db, course, teacher, title="Práctica 2", due_at=datetime.now(UTC) + timedelta(days=6)
+    )
+    _seed_assignment(db, course, teacher, title="Proyecto")
+
+    submission = Submission(
+        assignment_id=graded.id,
+        course_id=course.id,
+        student_id=student.id,
+        status=SubmissionStatus.reviewed,
+        submitted_at=datetime.now(UTC),
+    )
+    db.add(submission)
+    db.flush()
+    db.add(Evaluation(submission_id=submission.id, teacher_id=teacher.id, score=Decimal("87.50")))
+    db.add(
+        Submission(
+            assignment_id=undone.id,
+            course_id=course.id,
+            student_id=student.id,
+            status=SubmissionStatus.draft,
+        )
+    )
+    peer_sub = Submission(
+        assignment_id=graded.id,
+        course_id=course.id,
+        student_id=peer.id,
+        status=SubmissionStatus.reviewed,
+        submitted_at=datetime.now(UTC),
+    )
+    db.add(peer_sub)
+    db.flush()
+    db.add(Evaluation(submission_id=peer_sub.id, teacher_id=teacher.id, score=Decimal("50.00")))
+    for day, status in (
+        (date(2026, 9, 1), AttendanceStatus.present),
+        (date(2026, 9, 2), AttendanceStatus.absent),
+        (date(2026, 9, 3), AttendanceStatus.late),
+    ):
+        db.add(
+            AttendanceRecord(course_id=course.id, student_id=student.id, date=day, status=status)
+        )
+    db.commit()
+
+    resp = client.get(f"/api/v1/courses/{course.id}/my-progress", headers=auth_headers(student))
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+
+    assert data["course_id"] == course.id
+    assert data["course_name"] == "Java"
+    assert [row["title"] for row in data["assignment_stats"]] == [
+        "Práctica 1",
+        "Práctica 2",
+        "Proyecto",
+    ]
+    first = data["assignment_stats"][0]
+    assert first["status"] == "reviewed"
+    assert first["score"] == 87.5
+    assert first["due_at"] is not None
+    assert first["submitted_at"] is not None
+    assert data["assignment_stats"][1]["status"] == "draft"
+    assert data["assignment_stats"][1]["score"] is None
+    assert data["assignment_stats"][2]["status"] == "none"
+
+    summary = data["summary"]
+    assert summary == {
+        "total": 3,
+        "delivered": 1,
+        "pending": 2,
+        "average_score": 87.5,
+        "delivery_pct": 33.3,
+    }
+    assert data["attendance"] == {
+        "present": 1,
+        "late": 1,
+        "absent": 1,
+        "excused": 0,
+        "pct": 66.7,
+    }
+
+    assert "Luis" not in resp.text
+    assert summary["average_score"] != 68.75
+
+
+def test_student_my_progress_without_submissions(client: TestClient, db: Session) -> None:
+    teacher = make_teacher(db, email="s3-profe2@aula.test")
+    student = make_student(db, name="Ana", username="s3-ana2")
+
+    course = make_course(db, code="S3C2")
+    assign_teacher(db, course, teacher)
+    enroll(db, course, student)
+    _seed_assignment(db, course, teacher, title="Sin entregar")
+
+    resp = client.get(f"/api/v1/courses/{course.id}/my-progress", headers=auth_headers(student))
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+
+    assert data["assignment_stats"][0]["status"] == "none"
+    assert data["summary"] == {
+        "total": 1,
+        "delivered": 0,
+        "pending": 1,
+        "average_score": None,
+        "delivery_pct": 0.0,
+    }
+    assert data["attendance"] == {
+        "present": 0,
+        "late": 0,
+        "absent": 0,
+        "excused": 0,
+        "pct": None,
+    }
+
+
+def test_student_my_progress_access(client: TestClient, db: Session) -> None:
+    teacher = make_teacher(db, email="s3-profe3@aula.test")
+    student = make_student(db, name="Ana", username="s3-ana3")
+    outsider = make_student(db, name="Pepe", username="s3-pepe")
+    admin = make_admin(db, email="s3-admin@aula.test")
+
+    course = make_course(db, code="S3C3")
+    assign_teacher(db, course, teacher)
+    enroll(db, course, student)
+
+    url = f"/api/v1/courses/{course.id}/my-progress"
+    assert client.get(url, headers=auth_headers(outsider)).status_code == 404
+    assert client.get(url, headers=auth_headers(teacher)).status_code == 403
+    assert client.get(url, headers=auth_headers(admin)).status_code == 200
