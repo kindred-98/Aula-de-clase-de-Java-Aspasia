@@ -47,6 +47,46 @@ function authAs(role: "teacher" | "student" | "admin") {
             created_at: new Date().toISOString(),
           }),
         );
+      if (url.includes("/student/dashboard"))
+        return Promise.resolve(
+          json({
+            totals: {
+              courses_count: 1,
+              pending_submissions: 2,
+              due_this_week: 1,
+              graded_submissions: 1,
+            },
+            courses: [
+              {
+                id: 1,
+                name: "Java",
+                code: "JAVA",
+                status: "active",
+                pending: 2,
+                next_due_at: "2026-10-01T10:00:00Z",
+              },
+            ],
+            upcoming: [
+              {
+                course_id: 1,
+                course_name: "Java",
+                assignment_id: 9,
+                title: "Tarea 9",
+                due_at: "2026-10-01T10:00:00Z",
+              },
+            ],
+            recent: [
+              {
+                course_id: 1,
+                course_name: "Java",
+                assignment_id: 9,
+                assignment_title: "Tarea 9",
+                score: 87.5,
+                evaluated_at: "2026-09-24T10:00:00Z",
+              },
+            ],
+          }),
+        );
       return Promise.resolve(json({ total: 0 }));
     }),
   );
@@ -99,6 +139,73 @@ describe("Fase S0 — estructura del panel del alumno", () => {
     renderRoutes(["/student"]);
 
     expect(await screen.findByRole("link", { name: "Panel" })).toBeInTheDocument();
+  });
+});
+
+describe("Fase S1 — dashboard del alumno", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    localStorage.setItem("aula.access_token", "session-token");
+    localStorage.setItem("aula.must_change", "0");
+  });
+
+  it("muestra KPIs, cursos, próximas entregas y evaluaciones", async () => {
+    authAs("student");
+    renderRoutes(["/student"]);
+
+    expect(await screen.findByRole("heading", { name: /panel del alumno/i })).toBeInTheDocument();
+    expect(screen.getByText("Por entregar")).toBeInTheDocument();
+    expect(screen.getByText("Fechas esta semana")).toBeInTheDocument();
+    expect(screen.getByText("Evaluadas")).toBeInTheDocument();
+    expect(screen.getAllByText("Mis cursos").length).toBeGreaterThan(1);
+    expect(screen.getByText("Próximas entregas")).toBeInTheDocument();
+    expect(screen.getByText("Evaluaciones recientes")).toBeInTheDocument();
+    expect(screen.getAllByText("Tarea 9").length).toBeGreaterThan(1);
+    expect(screen.getByText("87.5")).toBeInTheDocument();
+    expect((await screen.findAllByText("Java")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /por entregar/i })).toBeInTheDocument();
+  });
+
+  it("muestra estado vacío si no hay cursos matriculados", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/auth/me"))
+          return Promise.resolve(
+            json({
+              id: 1,
+              name: "Ana",
+              email: "student@aula.test",
+              username: "ana",
+              role: "student",
+              is_active: true,
+              must_change_credentials: false,
+              created_at: new Date().toISOString(),
+            }),
+          );
+        if (url.includes("/student/dashboard"))
+          return Promise.resolve(
+            json({
+              totals: {
+                courses_count: 0,
+                pending_submissions: 0,
+                due_this_week: 0,
+                graded_submissions: 0,
+              },
+              courses: [],
+              upcoming: [],
+              recent: [],
+            }),
+          );
+        return Promise.resolve(json({ total: 0 }));
+      }),
+    );
+    renderRoutes(["/student"]);
+
+    expect(await screen.findByText("Sin cursos matriculados")).toBeInTheDocument();
+    expect(screen.getByText("Sin fechas próximas")).toBeInTheDocument();
+    expect(screen.getByText("Sin evaluaciones")).toBeInTheDocument();
   });
 });
 

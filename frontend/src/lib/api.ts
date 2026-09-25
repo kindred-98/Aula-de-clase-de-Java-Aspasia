@@ -677,6 +677,46 @@ export type TeacherDashboard = {
   recent: TeacherRecentItem[];
 };
 
+export type StudentTotals = {
+  courses_count: number;
+  pending_submissions: number;
+  due_this_week: number;
+  graded_submissions: number;
+};
+
+export type StudentDashboardCourse = {
+  id: number;
+  name: string;
+  code: string;
+  status: string;
+  pending: number;
+  next_due_at: string | null;
+};
+
+export type StudentUpcomingItem = {
+  course_id: number;
+  course_name: string;
+  assignment_id: number;
+  title: string;
+  due_at: string;
+};
+
+export type StudentRecentEvaluation = {
+  course_id: number;
+  course_name: string;
+  assignment_id: number | null;
+  assignment_title: string | null;
+  score: number | null;
+  evaluated_at: string | null;
+};
+
+export type StudentDashboard = {
+  totals: StudentTotals;
+  courses: StudentDashboardCourse[];
+  upcoming: StudentUpcomingItem[];
+  recent: StudentRecentEvaluation[];
+};
+
 export type TeacherQueueItem = {
   submission_id: number;
   course_id: number;
