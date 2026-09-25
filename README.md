@@ -18,7 +18,7 @@
 [![Frontend](https://img.shields.io/badge/frontend-17%20tests-8b5cf6?style=flat-square)](./frontend/src)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](./LICENSE)
 
-**Guía de arranque → [COMANDOS.md](./COMANDOS.md)** · Arquitectura → [PLAN.md](./PLAN.md) · Entregas → [CHANGELOG.md](./CHANGELOG.md)
+**Guía de arranque → [COMANDOS_DE_LA_APP.md](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md)** · Arquitectura → [PLAN_CLAUDE.md](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md) · Entregas → [CHANGELOG.md](./CHANGELOG.md)
 
 </div>
 
@@ -52,7 +52,7 @@
 
 El nombre rinde homenaje a **Aspasia de Mileto**, educadora y retórica de la Atenas clásica: símbolo de enseñanza cercana, diálogo y rigor. La misión del producto es la misma: **que el aula física se convierta en un espacio digital ordenado, seguro y medible**, sin perder la metáfora del “asiento” que cada estudiante ocupa en la clase.
 
-Este README explica **qué es**, **por qué se creó**, **para qué fin** y **cómo funciona de punta a punta**. Los comandos operativos están en **[COMANDOS.md](./COMANDOS.md)**.
+Este README explica **qué es**, **por qué se creó**, **para qué fin** y **cómo funciona de punta a punta**. Los comandos operativos están en **[COMANDOS_DE_LA_APP.md](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md)**.
 
 ---
 
@@ -272,7 +272,7 @@ UX transversal: tokens de diseño light/dark, estados de carga/vacío/error, toa
 | Lint | ruff, mypy strict, eslint, prettier | — |
 | Infra | Docker Compose, GitHub Actions | postgres, api, nginx |
 
-**Decisiones clave** (detalle en [PLAN.md](./PLAN.md)):
+**Decisiones clave** (detalle en [PLAN_CLAUDE.md](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md)):
 
 - **Multi-tenant desde el día 1:** toda fila de curso lleva `course_id`.
 - **Asiento ≠ estudiante:** `enrollments` separa entidades; mover de sitio **no pierde entregas**.
@@ -367,7 +367,7 @@ Los tests de **permisos** son el criterio de aceptación prioritario (ver matriz
 
 ## 🚀 Instalación y arranque
 
-**Guía completa paso a paso → [COMANDOS.md](./COMANDOS.md)**
+**Guía completa paso a paso → [COMANDOS_DE_LA_APP.md](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md)**
 
 ### Arranque express (Docker)
 
@@ -401,7 +401,7 @@ AULA_ADMIN_EMAIL=admin@aspasia.test AULA_ADMIN_PASSWORD=TuClave123! python -m sc
 python -m scripts.seed_demo   # imprime PINs de student01…15 una sola vez
 ```
 
-Detalles, Makefile, troubleshooting y credenciales de demo: **[COMANDOS.md](./COMANDOS.md)**.
+Detalles, Makefile, troubleshooting y credenciales de demo: **[COMANDOS_DE_LA_APP.md](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md)**.
 
 ---
 
@@ -410,9 +410,13 @@ Detalles, Makefile, troubleshooting y credenciales de demo: **[COMANDOS.md](./CO
 ```
 /
 ├── README.md              ← este documento
-├── COMANDOS.md            ← guía de comandos y arranque
-├── PLAN.md                ← arquitectura y decisiones (D1–D14)
 ├── CHANGELOG.md           ← historial por fases
+├── Archivo_Markdown/
+│   ├── Explicacion_de_Cada_ARCHIVO.md  ← índice de toda la documentación
+│   ├── COMANDOS/          ← COMANDOS_DE_LA_APP.md, run_comando.md
+│   ├── PLAN/              ← PLAN_CLAUDE, PLAN_ADMIN, PLAN_PROFESOR, PLAN_ALUMNO
+│   ├── PLANES_APLICADO_CON_EXITO/       ← informes TRABAJO_REALIZADO_*.md
+│   └── PROMPT_INICIAL/    ← prompt_Claude_PrimerasFases.md
 ├── Makefile · docker-compose.yml · .env.example
 ├── .github/workflows/ci.yml
 ├── assets/images.jpg             # Logo oficial Aspasia
@@ -442,9 +446,14 @@ Detalles, Makefile, troubleshooting y credenciales de demo: **[COMANDOS.md](./CO
 
 | Documento | Contenido |
 |-----------|-----------|
-| **[COMANDOS.md](./COMANDOS.md)** | Instalar, arrancar, tests, troubleshooting |
-| **[PLAN.md](./PLAN.md)** | Esquema de datos, matriz de permisos, decisiones D1–D14 |
-| **[CHANGELOG.md](./CHANGELOG.md)** | Qué se hizo y probó en cada fase (0–3) |
+| **[COMANDOS_DE_LA_APP.md](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md)** | Instalar, arrancar, tests, troubleshooting |
+| **[run_comando.md](./Archivo_Markdown/COMANDOS/run_comando.md)** | Chuleta de arranque express (2 terminales) |
+| **[PLAN_CLAUDE.md](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md)** | Esquema de datos, matriz de permisos, decisiones D1–D14 |
+| **[PLAN_ADMIN.md](./Archivo_Markdown/PLAN/PLAN_ADMIN.md)** · **[PLAN_PROFESOR.md](./Archivo_Markdown/PLAN/PLAN_PROFESOR.md)** · **[PLAN_ALUMNO.md](./Archivo_Markdown/PLAN/PLAN_ALUMNO.md)** | Planes por módulo: admin (A–D), profesor (T0–T4), alumno (S0–S4) |
+| **[TRABAJO_REALIZADO_EN_ADMIN.md](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md)** · **[TRABAJO_REALIZADO_EN_PROFESOR.md](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_PROFESOR.md)** · **[TRABAJO_REALIZADO_EN_ALUMNO.md](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ALUMNO.md)** | Informes de entregas por módulo |
+| **[prompt_Claude_PrimerasFases.md](./Archivo_Markdown/PROMPT_INICIAL/prompt_Claude_PrimerasFases.md)** | Briefing inicial (contrato de trabajo) |
+| **[Explicacion_de_Cada_ARCHIVO.md](./Archivo_Markdown/Explicacion_de_Cada_ARCHIVO.md)** | Índice: qué hace cada documento |
+| **[CHANGELOG.md](./CHANGELOG.md)** | Qué se hizo y probó en cada fase (0–3, A–D, T, S) |
 | **[LICENSE](./LICENSE)** | Licencia MIT |
 | API (`/docs`) | OpenAPI interactiva en desarrollo |
 
@@ -488,9 +497,10 @@ El siguiente paso operativo es **levantar la app** con la guía de comandos, cre
 *Aula virtual multi-curso para enseñar programación con rigor y claridad.*
 
 [![README](https://img.shields.io/badge/docs-README-4f46e5?style=flat-square)](./README.md)
-[![COMANDOS](https://img.shields.io/badge/docs-COMANDOS-0ea5e9?style=flat-square)](./COMANDOS.md)
-[![PLAN](https://img.shields.io/badge/docs-PLAN-7c3aed?style=flat-square)](./PLAN.md)
+[![COMANDOS](https://img.shields.io/badge/docs-COMANDOS-0ea5e9?style=flat-square)](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md)
+[![PLAN](https://img.shields.io/badge/docs-PLAN-7c3aed?style=flat-square)](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md)
 [![CHANGELOG](https://img.shields.io/badge/docs-CHANGELOG-16a34a?style=flat-square)](./CHANGELOG.md)
+[![Índice](https://img.shields.io/badge/docs-%C3%ADndice%20de%20docs-f59e0b?style=flat-square)](./Archivo_Markdown/Explicacion_de_Cada_ARCHIVO.md)
 
 <br/>
 

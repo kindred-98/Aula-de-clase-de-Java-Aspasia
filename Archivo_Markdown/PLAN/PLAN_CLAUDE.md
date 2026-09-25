@@ -7,6 +7,16 @@ Documento de arquitectura y decisiones. Se actualiza ante cada decisión ambigua
 - Multi-tenant desde el día 1: todo dato de curso lleva `course_id` y toda
   consulta lo filtra.
 
+**Documentación relacionada**: [prompt_Claude_PrimerasFases.md](../PROMPT_INICIAL/prompt_Claude_PrimerasFases.md)
+(origen del plan) · [PLAN_ADMIN.md](PLAN_ADMIN.md),
+[PLAN_PROFESOR.md](PLAN_PROFESOR.md), [PLAN_ALUMNO.md](PLAN_ALUMNO.md)
+(planes por módulo) ·
+[TRABAJO_REALIZADO_EN_ADMIN.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md),
+[TRABAJO_REALIZADO_EN_PROFESOR.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_PROFESOR.md),
+[TRABAJO_REALIZADO_EN_ALUMNO.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ALUMNO.md)
+(informes de entrega) · [CHANGELOG.md](../../CHANGELOG.md) ·
+[Índice de docs](../Explicacion_de_Cada_ARCHIVO.md).
+
 ---
 
 ## 1. Stack (verificado)
@@ -281,7 +291,8 @@ Invariantes de seguridad (con tests obligatorios):
 
 ```
 /
-├── PLAN.md  CHANGELOG.md  README.md  LICENSE
+├── README.md  CHANGELOG.md  LICENSE
+├── Archivo_Markdown/        ← documentación (PLAN_*, TRABAJO_*, comandos)
 ├── Makefile  docker-compose.yml  .env.example
 ├── .pre-commit-config.yaml  .gitignore
 ├── .github/workflows/ci.yml

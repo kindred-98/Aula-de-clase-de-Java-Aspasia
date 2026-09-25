@@ -9,6 +9,12 @@ completa + commit.
 - Backend: Python/FastAPI en `backend/`; frontend: React en `frontend/`.
 - Cada fase se entrega con `commit + push` a `main` (como Fases A–D de admin).
 
+**Documentación relacionada**: [PLAN_ADMIN.md](PLAN_ADMIN.md) (patrón de
+origen) · [PLAN_ALUMNO.md](PLAN_ALUMNO.md) (módulo siguiente) ·
+[TRABAJO_REALIZADO_EN_PROFESOR.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_PROFESOR.md)
+(ejecución) · [CHANGELOG.md](../../CHANGELOG.md) ·
+[Índice de docs](../Explicacion_de_Cada_ARCHIVO.md).
+
 ---
 
 ## 1. Contexto y objetivo
@@ -190,7 +196,8 @@ panel.
   `reports.view` (roles custom, Fase D); ocultar si no.
 - Estados vacíos/carga/error en todas las vistas nuevas; a11y (contraste
   AA, foco visible, ARIA, teclado); responsive del sidebar.
-- CHANGELOG **[Fase T]** + verificación completa; commit + push.
+- [CHANGELOG.md](../../CHANGELOG.md) **[Fase T]** + verificación completa;
+  commit + push.
 
 ---
 
@@ -207,11 +214,12 @@ panel.
 
 - Crear/archivar cursos, asignar profes, usuarios, ajustes del centro
   (admin).
-- Módulo student (`PLAN_ALUMNO.md`, después de este).
+- Módulo student ([PLAN_ALUMNO.md](PLAN_ALUMNO.md), después de este).
 - Revisión/acomodo del módulo admin (pendiente aparte).
 - WebSocket, email real, MFA.
 
 ## 7. Orden de ejecución
 
 T0 → T1 → T2 → T3 → T4. Cada fase: implementar → cadena de verificación →
-CHANGELOG (solo en T4, entrada única **[Fase T]**) → commit + push.
+[CHANGELOG.md](../../CHANGELOG.md) (solo en T4, entrada única **[Fase T]**)
+→ commit + push.

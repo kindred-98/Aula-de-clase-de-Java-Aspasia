@@ -3,6 +3,12 @@
 Fuente original del roadmap: este mismo archivo (sección final "Roadmap de
 origen"). Documenta lo entregado fase a fase, con verificación y pendientes.
 
+**Documentación relacionada**: plan [PLAN_ADMIN.md](../PLAN/PLAN_ADMIN.md) ·
+[CHANGELOG.md](../../CHANGELOG.md) (entrada `## [Fase A]` … `## [Fase D]`) ·
+hermanos [TRABAJO_REALIZADO_EN_PROFESOR.md](TRABAJO_REALIZADO_EN_PROFESOR.md)
+y [TRABAJO_REALIZADO_EN_ALUMNO.md](TRABAJO_REALIZADO_EN_ALUMNO.md) ·
+[Índice de docs](../Explicacion_de_Cada_ARCHIVO.md).
+
 Resumen de commits en `main`
 (`https://github.com/kindred-98/Aula-de-clase-de-Java-Aspasia`):
 
@@ -124,7 +130,7 @@ rutas solo-admin, gating de reportes por permiso personalizado
 
 El roadmap lo marca como opcional y hoy la plataforma es 100% in-app
 (mensajes, anuncios, calendario). No se implementa envío SMTP; queda
-documentado en `CHANGELOG.md`.
+documentado en [CHANGELOG.md](../../CHANGELOG.md).
 
 ### Verificación Fase D
 

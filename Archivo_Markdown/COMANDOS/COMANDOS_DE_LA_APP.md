@@ -1,21 +1,21 @@
 <div align="center">
 
-<img src="../assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="360" />
+<img src="../../assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="360" />
 
 # 🚀 Guía de Comandos
 
 **Aspasia · Aula Virtual Multi-Curso**
 
-[![README](https://img.shields.io/badge/docs-README-4f46e5?style=flat-square)](./README.md)
+[![README](https://img.shields.io/badge/docs-README-4f46e5?style=flat-square)](../../README.md)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](./LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](../../LICENSE)
 
 *Todo lo que necesitas para instalar, arrancar, probar y mantener la app.*
 
-[Volver al README](./README.md) · [Ir al índice](#-índice)
+[Volver al README](../../README.md) · [Índice de documentación](../Explicacion_de_Cada_ARCHIVO.md) · [Ir al índice](#-índice)
 
 </div>
 
@@ -59,9 +59,11 @@
 
 Esta página concentra **solo comandos operativos**: instalar dependencias, levantar la API y el frontend, crear el primer administrador, sembrar el curso de demostración, ejecutar tests y lint.
 
-- Qué es la plataforma y **por qué existe** → [README.md](./README.md)
-- Arquitectura, permisos y modelo de datos → [PLAN.md](./PLAN.md)
-- Historial de entregas por fase → [CHANGELOG.md](./CHANGELOG.md)
+- Qué es la plataforma y **por qué existe** → [README.md](../../README.md)
+- Arquitectura, permisos y modelo de datos → [PLAN_CLAUDE.md](../PLAN/PLAN_CLAUDE.md)
+- Historial de entregas por fase → [CHANGELOG.md](../../CHANGELOG.md)
+- Arranque express (2 terminales) → [run_comando.md](run_comando.md)
+- Qué hace cada documento → [Explicacion_de_Cada_ARCHIVO.md](../Explicacion_de_Cada_ARCHIVO.md)
 
 > **Convención:** en Windows (PowerShell) usa `.venv\Scripts\python` o `.venv\Scripts\activate`; en Linux/macOS usa `python` / `source .venv/bin/activate`.
 
@@ -532,19 +534,19 @@ Con esta guía puedes, en orden:
 5. **Ejecutar** lint y tests al mismo nivel que CI.  
 6. **Diagnosticar** los fallos habituales con la tabla de troubleshooting.
 
-Para el **porqué del producto**, roles, perminos y mapa de pantallas, vuelve al [README](./README.md).  
-Para decisiones de arquitectura, consulta [PLAN.md](./PLAN.md).
+Para el **porqué del producto**, roles, perminos y mapa de pantallas, vuelve al [README](../../README.md).  
+Para decisiones de arquitectura, consulta [PLAN_CLAUDE.md](../PLAN/PLAN_CLAUDE.md).
 
 ---
 
 <div align="center">
 
-<img src="../assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="220" />
+<img src="../../assets/images.jpg" alt="Aspasia — La formación de tu futuro" width="220" />
 
 **Aspasia · La formación de tu futuro**  
 Guía de comandos · Aula Virtual Multi-Curso
 
-[README](./README.md) · [PLAN](./PLAN.md) · [CHANGELOG](./CHANGELOG.md) · [LICENSE](./LICENSE)
+[README](../../README.md) · [PLAN](../PLAN/PLAN_CLAUDE.md) · [CHANGELOG](../../CHANGELOG.md) · [Índice de docs](../Explicacion_de_Cada_ARCHIVO.md) · [LICENSE](../../LICENSE)
 
 <br/>
 

@@ -1,15 +1,22 @@
-# Trabajo realizado en Alumno — Plan `PLAN_ALUMNO.md` (fases S0–S4) completado
+# Trabajo realizado en Alumno — Plan [PLAN_ALUMNO.md](../PLAN/PLAN_ALUMNO.md) (fases S0–S4) completado
 
 Documento de cierre del **panel del alumnado**. Fuente de ejecución:
-`Archivo_Markdown/PLAN_ALUMNO.md`; resumen oficial en `CHANGELOG.md`
+[Archivo_Markdown/PLAN/PLAN_ALUMNO.md](../PLAN/PLAN_ALUMNO.md);
+resumen oficial en [CHANGELOG.md](../../CHANGELOG.md)
 (entrada `## [Fase S]`).
+
+**Documentación relacionada**: plan [PLAN_ALUMNO.md](../PLAN/PLAN_ALUMNO.md) ·
+patrón de origen [PLAN_ADMIN.md](../PLAN/PLAN_ADMIN.md) y
+[PLAN_PROFESOR.md](../PLAN/PLAN_PROFESOR.md) ·
+hermano [TRABAJO_REALIZADO_EN_PROFESOR.md](TRABAJO_REALIZADO_EN_PROFESOR.md) ·
+[Índice de docs](../Explicacion_de_Cada_ARCHIVO.md).
 
 Resumen de commits en `main`
 (`https://github.com/kindred-98/Aula-de-clase-de-Java-Aspasia`):
 
 | Fase | Commit | Contenido |
 |------|--------|-----------|
-| plan | `e9c334f` | `Archivo_Markdown/PLAN_ALUMNO.md` |
+| plan | `e9c334f` | [`Archivo_Markdown/PLAN/PLAN_ALUMNO.md`](../PLAN/PLAN_ALUMNO.md) |
 | S0 | `ffc6c67` | `StudentLayout`, guard `RequireStudent` y rutas `/student` |
 | S1 | `44a704c` | `GET /student/dashboard` + panel con KPIs, cursos y actividad |
 | S2 | `276208b` | `GET /student/pending-count`, badge en la nav y lista "Por entregar" |
@@ -73,7 +80,7 @@ Verificación en verde tras cada fase (cadena obligatoria):
   vistas nuevas, ARIA (`aria-label` en nav y secciones), foco visible
   global y sidebar responsive del `StudentLayout` (fila en móvil,
   columna en `lg`).
-- Entrada única **`## [Fase S]`** en `CHANGELOG.md`.
+- Entrada única **`## [Fase S]`** en [CHANGELOG.md](../../CHANGELOG.md).
 - Tests: redirección desde las 4 rutas staff, teacher sigue pudiendo
   abrir "Evaluar entregas", aula con/sin enlaces staff.
 

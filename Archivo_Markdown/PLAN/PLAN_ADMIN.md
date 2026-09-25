@@ -2,15 +2,26 @@
 
 Documento de plan del **módulo admin** (Fases A–D). Origen: el roadmap
 "Módulos prioritarios" del briefing original
-(`prompt_Claude_PrimerasFases.md`, sección 3), ejecutado entre el
+([prompt_Claude_PrimerasFases.md](../PROMPT_INICIAL/prompt_Claude_PrimerasFases.md),
+sección 3), ejecutado entre el
 2026-09-24 (`86d505d`) y `26f100a`. Redactado/dejado por escrito al cierre
-para tener el mismo formato que `PLAN_PROFESOR.md` y `PLAN_ALUMNO.md`;
-el detalle de lo entregado está en `TRABAJO_REALIZADO_EN_ADMIN.md` y en
-`CHANGELOG.md` (entrada `## [Fase A]` … `## [Fase D]`).
+para tener el mismo formato que [PLAN_PROFESOR.md](PLAN_PROFESOR.md) y
+[PLAN_ALUMNO.md](PLAN_ALUMNO.md);
+el detalle de lo entregado está en
+[TRABAJO_REALIZADO_EN_ADMIN.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md)
+y en [CHANGELOG.md](../../CHANGELOG.md) (entrada `## [Fase A]` … `## [Fase D]`).
 
 - Idioma: documentación en español; código, variables y commits en inglés.
 - Backend: Python/FastAPI en `backend/`; frontend: React en `frontend/`.
 - Cada fase se entregó con cadena de verificación + `commit + push` a `main`.
+
+**Documentación relacionada**: [prompt](../PROMPT_INICIAL/prompt_Claude_PrimerasFases.md)
+(origen) · [PLAN_CLAUDE.md](PLAN_CLAUDE.md) (arquitectura) ·
+[PLAN_PROFESOR.md](PLAN_PROFESOR.md) / [PLAN_ALUMNO.md](PLAN_ALUMNO.md)
+(módulos siguientes) ·
+[TRABAJO_REALIZADO_EN_ADMIN.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md)
+(ejecución) · [CHANGELOG.md](../../CHANGELOG.md) ·
+[Índice de docs](../Explicacion_de_Cada_ARCHIVO.md).
 
 ---
 
@@ -46,7 +57,8 @@ El roadmap pedía "cerrar lo que ya hay API sin UI" y luego escalar
   `features/admin/AdminLayout.tsx` + rutas `/admin/*` en `app/routes.tsx`
   (dashboard, cursos, usuarios, mensajes, observador, auditoría, import,
   herramientas). Este es el patrón que después calcaron
-  `PLAN_PROFESOR.md` (T0) y `PLAN_ALUMNO.md` (S0).
+  [PLAN_PROFESOR.md](PLAN_PROFESOR.md) (T0) y
+  [PLAN_ALUMNO.md](PLAN_ALUMNO.md) (S0).
 - **D-A2 — Guard `RequireAdmin`**: solo `admin`; `teacher`/`student` → `/`.
 - **D-A3 — Un archivo por responsabilidad**: `features/admin/` (y
   `features/phasec/`, `features/scale/` por fase) con páginas y
@@ -170,16 +182,16 @@ El roadmap pedía "cerrar lo que ya hay API sin UI" y luego escalar
   `npm run test` → `npm run build`: **18 → 22 → 27 → 31 tests**.
 - Migraciones: `alembic upgrade head` aplicado en local por fase
   (`a1f3c9d2e8b4`, `b7e2d4f1a9c3`, `c8f5e1a2b3d4`, `d9a4b5c6e7f8`).
-- CHANGELOG: una entrada por fase (`## [Fase A]` … `## [Fase D]`).
+- CHANGELOG ([entrada](../../CHANGELOG.md) `## [Fase A]` … `## [Fase D]`).
 
 ## 6. Fuera de alcance
 
 - WebSocket, email real/SMTP y MFA (decisión D-A8 y roadmap item 17).
 - Ajustes de sesión (expiración configurable) más allá de revocación.
-- Módulos teacher y student (a cargo de `PLAN_PROFESOR.md` y
-  `PLAN_ALUMNO.md`).
+- Módulos teacher y student (a cargo de [PLAN_PROFESOR.md](PLAN_PROFESOR.md) y
+  [PLAN_ALUMNO.md](PLAN_ALUMNO.md)).
 - Revisión/acomodo fino del módulo admin (pendiente aparte, ver
-  `TRABAJO_REALIZADO_EN_ADMIN.md`).
+  [TRABAJO_REALIZADO_EN_ADMIN.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md)).
 
 ## 7. Orden de ejecución
 
@@ -199,5 +211,6 @@ Fase C — Profesional LMS
 Fase D — Escala
 ```
 
-(Detalle completo del texto original: `TRABAJO_REALIZADO_EN_ADMIN.md`,
+(Detalle completo del texto original:
+[TRABAJO_REALIZADO_EN_ADMIN.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md),
 sección "Roadmap de origen".)

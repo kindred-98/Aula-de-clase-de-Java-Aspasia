@@ -1,8 +1,14 @@
 # ROL Y OBJETIVO
 
+> **Nota (histórico)**: los documentos que este prompt pide crear viven hoy en
+> [PLAN_CLAUDE.md](../PLAN/PLAN_CLAUDE.md) (el "PLAN.md" original),
+> [CHANGELOG.md](../../CHANGELOG.md) y [README.md](../../README.md).
+> Índice de toda la documentación:
+> [Explicacion_de_Cada_ARCHIVO.md](../Explicacion_de_Cada_ARCHIVO.md).
+
 Actúa como ingeniero senior full stack. Construye una plataforma web de aula virtual multi-curso, profesional y lista para producción. Trabaja por fases, en orden, y NO avances a la siguiente fase hasta que la actual tenga tests pasando y la hayas verificado ejecutándola.
 
-Antes de escribir código: crea un plan en PLAN.md con el esquema de datos, la matriz de permisos y la estructura de carpetas, y sigue ese plan. Responde y documenta en español; el código, nombres de variables y commits en inglés.
+Antes de escribir código: crea un plan en [PLAN.md](../PLAN/PLAN_CLAUDE.md) con el esquema de datos, la matriz de permisos y la estructura de carpetas, y sigue ese plan. Responde y documenta en español; el código, nombres de variables y commits en inglés.
 
 # CONTEXTO DEL PRODUCTO
 
@@ -10,7 +16,7 @@ Una plataforma para gestionar aulas de cursos de programación. El primer caso d
 
 Cada estudiante tiene un espacio de trabajo propio (su "asiento") donde sube archivos y enlaces a GitHub. La profesora evalúa desde la propia app. Los estudiantes pueden ver los trabajos de la profesora y de sus compañeros para comprobar que van bien, pero NUNCA las notas ni los comentarios de evaluación de otros.
 
-# STACK (no lo cambies sin justificarlo en PLAN.md)
+# STACK (no lo cambies sin justificarlo en [PLAN.md](../PLAN/PLAN_CLAUDE.md))
 
 - Backend: Python 3.12, FastAPI, SQLAlchemy 2.x, Alembic (migraciones), Pydantic v2
 - Base de datos: PostgreSQL
@@ -115,12 +121,12 @@ Además: tests de integración de los flujos principales y cobertura mínima del
 
 # FASES (una a una, con verificación al final de cada una)
 
-Fase 0: PLAN.md, estructura del repo, Docker Compose, CI, linters, base de datos con migraciones
+Fase 0: [PLAN.md](../PLAN/PLAN_CLAUDE.md), estructura del repo, Docker Compose, CI, linters, base de datos con migraciones
 Fase 1 (MVP): auth con PIN seguro, cursos, asientos, matrículas, vista de aula, entregas con archivos y GitHub, evaluación básica de la profesora, tests de permisos
 Fase 2: secciones dinámicas con Markdown, tareas con fechas límite y versiones, visibilidad configurable, panel admin completo, importación CSV, anuncios, AuditLog
 Fase 3: rúbricas, asistencia, calendario, metadatos de GitHub, clonar cursos, métricas, exportación CSV, RGPD, pulido de UX y accesibilidad
 
-Al terminar cada fase: ejecuta lint + tests, arranca la app con Docker Compose, comprueba manualmente el flujo principal y resume en CHANGELOG.md qué se hizo, qué se probó y qué queda pendiente. Si una decisión es ambigua, elige la opción más segura, anótala en PLAN.md y continúa; no me hagas preguntas triviales.
+Al terminar cada fase: ejecuta lint + tests, arranca la app con Docker Compose, comprueba manualmente el flujo principal y resume en [CHANGELOG.md](../../CHANGELOG.md) qué se hizo, qué se probó y qué queda pendiente. Si una decisión es ambigua, elige la opción más segura, anótala en [PLAN.md](../PLAN/PLAN_CLAUDE.md) y continúa; no me hagas preguntas triviales.
 
 # REGLAS DE TRABAJO
 
@@ -129,4 +135,4 @@ Al terminar cada fase: ejecuta lint + tests, arranca la app con Docker Compose, 
 - No dejes TODOs ni datos de ejemplo hardcodeados en código de producción; el seed de demo va en un script aparte (un curso "Java" de ejemplo con 3x5 asientos, 1 profesora y 15 estudiantes)
 - README con instrucciones de instalación, variables de entorno, cómo correr tests y cómo crear el primer admin
 
-Empieza por la Fase 0 y muéstrame PLAN.md antes de continuar con la Fase 1.
+Empieza por la Fase 0 y muéstrame [PLAN.md](../PLAN/PLAN_CLAUDE.md) antes de continuar con la Fase 1.

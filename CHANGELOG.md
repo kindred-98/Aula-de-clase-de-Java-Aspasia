@@ -2,6 +2,8 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+**Documentación relacionada**: [README](./README.md) · índice [Explicacion_de_Cada_ARCHIVO](./Archivo_Markdown/Explicacion_de_Cada_ARCHIVO.md) · planes ([Claude](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md), [Admin](./Archivo_Markdown/PLAN/PLAN_ADMIN.md), [Profesor](./Archivo_Markdown/PLAN/PLAN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLAN/PLAN_ALUMNO.md)) · informes ([Admin](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md), [Profesor](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ALUMNO.md)) · [comandos](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md).
+
 ## [Fase S] — 2026-09-25
 
 ### Hecho
@@ -442,8 +444,9 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
 ### Hecho
 
-- `PLAN.md` con esquema de datos completo, matriz de permisos, estructura de
-  carpetas y decisiones (D1–D14).
+- [`PLAN_CLAUDE.md`](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md) con esquema de
+  datos completo, matriz de permisos, estructura de carpetas y decisiones
+  (D1–D14).
 - Estructura del monorepo: `backend/` (FastAPI) + `frontend/` (React/Vite) +
   infraestructura raíz.
 - Backend:
@@ -487,5 +490,6 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
   pudo levantar aquí; se valida en CI (`docker compose config`) y deberá
   verificarse manualmente en una máquina con Docker (Fase 1).
 - Local solo tiene **Python 3.14**: el objetivo oficial sigue siendo 3.12
-  (Docker/CI). Ver PLAN.md D1/D2.
+  (Docker/CI). Ver [`PLAN_CLAUDE.md`](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md)
+  D1/D2.
 - Seed demo, primer admin y endpoints de auth/cursos: **Fase 1**.

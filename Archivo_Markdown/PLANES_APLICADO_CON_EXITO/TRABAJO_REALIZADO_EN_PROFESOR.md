@@ -1,8 +1,15 @@
-# Trabajo realizado en Profesor — Plan `PLAN_PROFESOR.md` (fases T0–T4) completado
+# Trabajo realizado en Profesor — Plan [PLAN_PROFESOR.md](../PLAN/PLAN_PROFESOR.md) (fases T0–T4) completado
 
 Documento de cierre del **panel del profesorado**. Fuente de ejecución:
-`Archivo_Markdown/PLAN_PROFESOR.md`; resumen oficial en `CHANGELOG.md`
+[Archivo_Markdown/PLAN/PLAN_PROFESOR.md](../PLAN/PLAN_PROFESOR.md);
+resumen oficial en [CHANGELOG.md](../../CHANGELOG.md)
 (entrada `## [Fase T]`).
+
+**Documentación relacionada**: plan [PLAN_PROFESOR.md](../PLAN/PLAN_PROFESOR.md) ·
+patrón de origen [PLAN_ADMIN.md](../PLAN/PLAN_ADMIN.md) ·
+módulo siguiente [PLAN_ALUMNO.md](../PLAN/PLAN_ALUMNO.md) ·
+hermano [TRABAJO_REALIZADO_EN_ALUMNO.md](TRABAJO_REALIZADO_EN_ALUMNO.md) ·
+[Índice de docs](../Explicacion_de_Cada_ARCHIVO.md).
 
 Resumen de commits en `main`
 (`https://github.com/kindred-98/Aula-de-clase-de-Java-Aspasia`):
@@ -142,4 +149,5 @@ panel del curso), `UpcomingList.tsx`, `ActivityList.tsx`,
   reutiliza el informe de Fase C en `/admin/reports`.
 - Sin WebSocket: la cola y el badge usan polling con TanStack Query.
 - Fuera de alcance del plan: crear/archivar cursos, usuarios y ajustes
-  (admin); módulo student (ya cubierto por `PLAN_ALUMNO.md`).
+  (admin); módulo student (ya cubierto por
+  [PLAN_ALUMNO.md](../PLAN/PLAN_ALUMNO.md)).

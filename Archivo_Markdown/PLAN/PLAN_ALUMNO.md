@@ -9,6 +9,12 @@ con verificación completa + commit.
 - Backend: Python/FastAPI en `backend/`; frontend: React en `frontend/`.
 - Cada fase se entrega con `commit + push` a `main` (como Fases A–D y T0–T4).
 
+**Documentación relacionada**: [PLAN_ADMIN.md](PLAN_ADMIN.md) y
+[PLAN_PROFESOR.md](PLAN_PROFESOR.md) (módulos previos y patrón de origen) ·
+[TRABAJO_REALIZADO_EN_ALUMNO.md](../PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ALUMNO.md)
+(ejecución) · [CHANGELOG.md](../../CHANGELOG.md) ·
+[Índice de docs](../Explicacion_de_Cada_ARCHIVO.md).
+
 ---
 
 ## 1. Contexto y objetivo
@@ -213,7 +219,8 @@ asistencia) sin salir del panel.
   no-staff.
 - Estados vacíos/carga/error en todas las vistas nuevas; a11y (contraste AA,
   foco visible, ARIA, teclado); responsive del sidebar.
-- CHANGELOG **[Fase S]** + verificación completa; commit + push.
+- [CHANGELOG.md](../../CHANGELOG.md) **[Fase S]** + verificación completa;
+  commit + push.
 
 ---
 
@@ -236,4 +243,5 @@ asistencia) sin salir del panel.
 ## 7. Orden de ejecución
 
 S0 → S1 → S2 → S3 → S4. Cada fase: implementar → cadena de verificación →
-CHANGELOG (solo en S4, entrada única **[Fase S]**) → commit + push.
+[CHANGELOG.md](../../CHANGELOG.md) (solo en S4, entrada única **[Fase S]**)
+→ commit + push.
