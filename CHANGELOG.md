@@ -2,6 +2,48 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
+## [Fase S] — 2026-09-25
+
+### Hecho
+
+- Backend (Alumnado):
+  - `routes/student.py`: `GET /student/dashboard` (KPIs, mis cursos,
+    próximas fechas, actividad reciente y lista "Por entregar", con
+    aislamiento por matrícula) y `GET /student/pending-count` para el
+    badge de navegación; 403 a profesorado, admin ve todos los cursos.
+  - `routes/courses.py`: `GET /courses/{id}/my-progress` con
+    `require_enrolled` — progreso propio por tarea (estado, nota,
+    fecha de entrega), resumen (entregadas/pendientes, nota media, %
+    de entrega) y asistencia (presentes/tardes/faltas/justificadas +
+    %); 404 sin matrícula y 403 al profesorado.
+  - Esquemas `app/schemas/student.py` (`StudentDashboard`,
+    `StudentPendingItem`, `StudentCourseProgress`, …).
+  - ruff + format + mypy + pytest+cov **123 tests, 86.70%**.
+- Frontend `features/student/`:
+  - S0: `StudentLayout` (nav responsive, tarjeta de usuario, logout),
+    guard `RequireStudent` (student+admin), rutas `/student`,
+    `homePath.ts → /student` y enlace "Panel" en la nav global.
+  - S1: dashboard con KPIs, tarjetas de curso, "Por entregar" y
+    evaluaciones recientes (componentes SRP en `dashboard/`).
+  - S2: `usePendingCount` (refresco 30 s), badge "N entregas por
+    entregar" en el NavLink de Inicio y componente `PendingList`
+    (sustituye a `UpcomingList`, con chips de vencida/sin fecha).
+  - S3: `MyProgressPage` en `/student/courses/:courseId` con resumen,
+    asistencia y progreso por tarea; accesos rápidos a aula/tareas y
+    enlaces desde `CourseCard` y "Mis cursos" (solo students).
+  - S4: guard `RequireStaff` en `/courses/:id/evaluate`,
+    `/attendance`, `/rubrics` y `/gradebook` (student → `/student`);
+    la cabecera del aula oculta "Asistencia" y "Rúbricas" a no-staff.
+  - Tests: `StudentPhaseS.test.tsx` — **66 tests frontend** en verde
+    (lint, format, typecheck y build incluidos).
+
+### Pendiente / limitaciones
+
+- Badge y "Por entregar" usan polling (30 s), sin WebSocket (D-S5).
+- La lista "Por entregar" muestra como máximo 10 tareas.
+- Sin migraciones de esquema (D-S7); las reglas de visibilidad del
+  backend no se tocaron (D-S6).
+
 ## [Fase T] — 2026-09-25
 
 ### Hecho

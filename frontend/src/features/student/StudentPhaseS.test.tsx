@@ -384,6 +384,116 @@ describe("Fase S3 — mi progreso por curso", () => {
   });
 });
 
+describe("Fase S4 — guards de rutas staff", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    localStorage.setItem("aula.access_token", "session-token");
+    localStorage.setItem("aula.must_change", "0");
+  });
+
+  const staffPaths = [
+    "/courses/1/evaluate",
+    "/courses/1/attendance",
+    "/courses/1/rubrics",
+    "/courses/1/gradebook",
+  ];
+
+  it.each(staffPaths)("redirige al panel cuando un student visita %s", async (path) => {
+    authAs("student");
+    renderRoutes([path]);
+
+    expect(await screen.findByRole("heading", { name: /panel del alumno/i })).toBeInTheDocument();
+  });
+
+  it("permite al teacher abrir Evaluar entregas", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/auth/me"))
+          return Promise.resolve(
+            json({
+              id: 2,
+              name: "Profe",
+              email: "teacher@aula.test",
+              username: null,
+              role: "teacher",
+              is_active: true,
+              must_change_credentials: false,
+              created_at: new Date().toISOString(),
+            }),
+          );
+        if (url.includes("/submissions")) return Promise.resolve(json([]));
+        if (url.includes("/rubrics")) return Promise.resolve(json([]));
+        return Promise.resolve(json({ total: 0 }));
+      }),
+    );
+    renderRoutes(["/courses/1/evaluate"]);
+
+    expect(await screen.findByRole("heading", { name: "Evaluar entregas" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /panel del alumno/i })).not.toBeInTheDocument();
+  });
+
+  function mockClassroom(role: string) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/auth/me"))
+          return Promise.resolve(
+            json({
+              id: 1,
+              name: role === "student" ? "Ana" : "Profe",
+              email: `${role}@aula.test`,
+              username: role === "student" ? "ana" : null,
+              role,
+              is_active: true,
+              must_change_credentials: false,
+              created_at: new Date().toISOString(),
+            }),
+          );
+        if (url.includes("/classroom"))
+          return Promise.resolve(
+            json({
+              course: {
+                id: 1,
+                name: "Java",
+                code: "JAVA",
+                description: "",
+                status: "active",
+                layout_rows: 2,
+                layout_cols: 2,
+              },
+              seats: [],
+              rows: 2,
+              cols: 2,
+              teachers: [{ id: 2, name: "Profe" }],
+            }),
+          );
+        return Promise.resolve(json({ total: 0 }));
+      }),
+    );
+  }
+
+  it("oculta Asistencia y Rúbricas en el aula para students", async () => {
+    mockClassroom("student");
+    renderRoutes(["/courses/1"]);
+
+    expect(await screen.findByRole("heading", { level: 1, name: /Java/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ir a entregas" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Asistencia" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Rúbricas" })).not.toBeInTheDocument();
+  });
+
+  it("muestra Asistencia y Rúbricas en el aula para teachers", async () => {
+    mockClassroom("teacher");
+    renderRoutes(["/courses/1"]);
+
+    expect(await screen.findByRole("heading", { level: 1, name: /Java/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Asistencia" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Rúbricas" })).toBeInTheDocument();
+  });
+});
+
 describe("homePathAfterLogin (D-S2)", () => {
   beforeEach(() => {
     localStorage.clear();

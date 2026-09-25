@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { apiGet, type ClassroomPayload } from "../../lib/api";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Spinner } from "../../components/ui/Spinner";
+import { useAuth } from "../auth/AuthContext";
 
 function statusColor(status: string | null): string {
   switch (status) {
@@ -20,6 +21,8 @@ function statusColor(status: string | null): string {
 }
 
 export function ClassroomPage() {
+  const { user } = useAuth();
+  const isStaff = user?.role === "teacher" || user?.role === "admin";
   const courseId = useParams().courseId ?? "";
   const room = useQuery({
     queryKey: ["classroom", courseId],
@@ -72,18 +75,22 @@ export function ClassroomPage() {
           >
             Calendario
           </Link>
-          <Link
-            to={`/courses/${courseId}/attendance`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
-          >
-            Asistencia
-          </Link>
-          <Link
-            to={`/courses/${courseId}/rubrics`}
-            className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
-          >
-            Rúbricas
-          </Link>
+          {isStaff ? (
+            <>
+              <Link
+                to={`/courses/${courseId}/attendance`}
+                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
+              >
+                Asistencia
+              </Link>
+              <Link
+                to={`/courses/${courseId}/rubrics`}
+                className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-surface"
+              >
+                Rúbricas
+              </Link>
+            </>
+          ) : null}
         </div>
       </div>
 

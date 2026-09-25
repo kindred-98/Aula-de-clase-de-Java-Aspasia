@@ -75,6 +75,12 @@ function RequireStudent({ children }: { children: ReactNode }) {
   return children;
 }
 
+function RequireStaff({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (user && user.role === "student") return <Navigate to="/student" replace />;
+  return children;
+}
+
 function RequirePermission({ permission, children }: { permission: string; children: ReactNode }) {
   const { user } = useAuth();
   const permissions = usePermissions();
@@ -143,7 +149,9 @@ export function AppRoutes() {
           path="/courses/:courseId/evaluate"
           element={
             <RequireAuth>
-              <EvaluatePage />
+              <RequireStaff>
+                <EvaluatePage />
+              </RequireStaff>
             </RequireAuth>
           }
         />
@@ -151,7 +159,9 @@ export function AppRoutes() {
           path="/courses/:courseId/attendance"
           element={
             <RequireAuth>
-              <AttendancePage />
+              <RequireStaff>
+                <AttendancePage />
+              </RequireStaff>
             </RequireAuth>
           }
         />
@@ -167,7 +177,9 @@ export function AppRoutes() {
           path="/courses/:courseId/rubrics"
           element={
             <RequireAuth>
-              <RubricsPage />
+              <RequireStaff>
+                <RubricsPage />
+              </RequireStaff>
             </RequireAuth>
           }
         />
@@ -175,7 +187,9 @@ export function AppRoutes() {
           path="/courses/:courseId/gradebook"
           element={
             <RequireAuth>
-              <GradebookPage />
+              <RequireStaff>
+                <GradebookPage />
+              </RequireStaff>
             </RequireAuth>
           }
         />
