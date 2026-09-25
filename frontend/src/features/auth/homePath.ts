@@ -1,6 +1,7 @@
 /**
  * Destino tras iniciar sesión / cambiar credenciales.
- * El teacher tiene panel propio en /teacher (D-T2 del plan del profesor).
+ * El teacher tiene panel en /teacher (D-T2 del plan del profesor) y el
+ * student en /student (D-S2 del plan del alumno).
  */
 function roleFromAccessToken(): string | null {
   const token = localStorage.getItem("aula.access_token");
@@ -17,5 +18,8 @@ function roleFromAccessToken(): string | null {
 }
 
 export function homePathAfterLogin(): string {
-  return roleFromAccessToken() === "teacher" ? "/teacher" : "/";
+  const role = roleFromAccessToken();
+  if (role === "teacher") return "/teacher";
+  if (role === "student") return "/student";
+  return "/";
 }
