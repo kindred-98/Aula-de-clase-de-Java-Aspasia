@@ -548,3 +548,125 @@ Ambos sabotajes detectados por la suite y revertidos.
 **66 tests** (literales de rol `admin → org_admin` en guards, formularios, mocks
 y `roleLabel`; `lib/api.ts` con `super_admin` en la unión de roles, sin rutas
 nuevas).
+
+---
+
+## 12. Fase B (registro + Stripe Checkout + webhooks + EmailService + activación) — PLAN
+
+**Estado: PLAN, sin implementar.** Origen: secciones 4, 5, 6 y 8 de
+[Super-admin-prompt.md](../1-REVISION_DE_CODIGO_CLAUDE/Super-admin-prompt.md).
+Esta sección define el alcance comprometido; **no se escribe código hasta que
+se confirme su revisión**. Fuera de esta fase: CRUD de `superadmin/*` y
+aislamiento por organización → Fase C; frontend y 2FA TOTP → Fase D.
+
+### 12.1 Alcance (solo backend)
+
+1. **Catálogo público de planes**: `GET /api/v1/public/plans` (sin auth) desde
+   `app/services/plans.py` — catálogo **estático** de 3 planes (id, nombre,
+   descripción, precio, `stripe_price_id` proveniente de Settings). **Sin tabla
+   nueva** para los planes.
+2. **Registro de organización**: `POST /api/v1/public/organizations`
+   (`name`, `tax_id`, `billing_email`, `plan_id`) → crea
+   `Organization(status=pending_payment)` **sin crear ningún `User`**, crea el
+   cliente y la **Checkout Session** de Stripe con `mode="subscription"`,
+   `trial_period_days=14`, `payment_method_collection="always"` (tarjeta por
+   adelantado), `metadata={"organization_id": id}` y success/cancel URLs sobre
+   `public_base_url`. Devuelve la `checkout_url`; la tarjeta se teclea en Stripe,
+   nunca pasa por este backend.
+3. **Webhook** `POST /api/v1/webhooks/stripe` (sin auth de usuario) con
+   **verificación de firma obligatoria** (sección 6 del prompt):
+   `stripe.Webhook.construct_event(payload, Stripe-Signature,
+   settings.stripe_webhook_secret)` → en firma ausente, inválida o de otro
+   `whsec_` ⇒ **400** y ningún efecto. Eventos y efectos:
+
+   | Evento | Efecto |
+   |---|---|
+   | `checkout.session.completed` | `User(role=org_admin)` con `activation_token_hash` (hash del token aleatorio; **nunca** el valor en claro), `password_hash=NULL`; org → `trialing` + `trial_ends_at`; email de activación |
+   | `customer.subscription.trial_will_end` | Email de aviso 3 días antes del fin del trial |
+   | `invoice.payment_succeeded` | `Organization.status = active` |
+   | `invoice.payment_failed` | `Organization.status = past_due` |
+   | `customer.subscription.deleted` | `Organization.status = canceled` |
+
+   **Idempotencia**: tabla nueva `stripe_webhook_events` (`event_id` único,
+   `event_type`, `received_at`); un evento repetido responde 200 sin re-ejecutar
+   (nunca crea un segundo `org_admin` ni reenvía el email).
+4. **Activación de cuenta** (un solo uso, 48 h): `GET /api/v1/auth/activate`
+   (valida el token y devuelve los datos a mostrar) y
+   `POST /api/v1/auth/activate` `{token, password}` → `password_hash=argon2`,
+   borra `activation_token_hash/expires_at` (uso único). Token expirado o ya
+   consumido ⇒ 4xx.
+5. **Login con `password_hash IS NULL`** ⇒ rechazo **explícito con 401** (sin
+   llegar a `verify_password`) + registro en AuditLog: la cuenta creada por el
+   webhook no puede autenticarse hasta activarse.
+6. **`EmailService` abstracto** (`app/services/email.py`, interfaz para cambiar
+   de proveedor sin tocar el resto) + **`ResendEmailService`** (REST de Resend
+   vía `httpx`). Sin `resend_api_key` en desarrollo ⇒ el enlace de activación se
+   **loguea** (nunca fallo silencioso; en `production` la clave es obligatoria).
+7. **Limpieza de `pending_payment`**: `python -m
+   scripts.cleanup_pending_organizations` — borra organizaciones en
+   `pending_payment` con más de 7 días (CLI para cron en producción; el repo no
+   tiene scheduler).
+8. **Config**: campos nuevos en `Settings` + `.env.example` con placeholders; si
+   `environment == "production"`, `stripe_secret_key`, `stripe_webhook_secret` y
+   `resend_api_key` **deben existir y no ser el placeholder de desarrollo**
+   (validación al arrancar, con test).
+
+### 12.2 Fuera de alcance de la Fase B
+
+- `/api/v1/superadmin/*` (CRUD de Organization, métricas agregadas) → **Fase C**.
+- Filtrado por `organization_id` en `admin.py`/`courses.py`/`phase3.py` →
+  **Fase C** (condición no negociable, ver 11.5).
+- Frontend (`/precios`, `/registro-empresa`, `/activar-cuenta/:token`,
+  redirección por rol) y 2FA TOTP de `super_admin` → **Fase D**.
+- La Fase A **no se toca**: migración `e1a2b3c4d5f6`, CLI y CHECKs quedan como
+  están.
+
+### 12.3 Modelo, dependencias y configuración nuevos
+
+- **Migración nueva** (con `downgrade`) únicamente para la tabla
+  `stripe_webhook_events`. `Organization` y `User` **no cambian**: estados,
+  `trial_ends_at` y los campos de token de activación ya existen desde la
+  Fase A (11.1).
+- **Dependencias**: añadir `stripe` a `dependencies` y **promover `httpx` de
+  `dev` a runtime** (`services/github_meta.py` ya lo importa; hoy solo está en
+  extras de desarrollo) para Resend.
+- **Settings nuevos** (dev: vacío/placeholder): `stripe_secret_key`,
+  `stripe_webhook_secret`, `stripe_price_*` (un Price por plan),
+  `resend_api_key`, `email_from`, `public_base_url`.
+  Producción: los tres secretos obligatorios y no-placeholder (ver 12.1.8).
+
+### 12.4 Tests de la fase (`tests/test_saas_phase_b.py`) y prueba de mutación
+
+- Webhook **sin firma** → 400, no crea `User` ni cambia ningún
+  `Organization.status`.
+- Webhook con firma de un **`whsec_` distinto** → 400, mismo "no efecto".
+- Evento con `event_id` **duplicado** → idempotencia (un solo efecto).
+- Flujo feliz: registro → `pending_payment` sin `User` → webhook →
+  `trialing` + `org_admin` con token y `password_hash=NULL`.
+- **Login de esa cuenta → 401** (rechazo explícito, AuditLog).
+- Activación: token válido OK; **token reusado → 4xx**; **token con más de
+  48 h → 4xx**.
+- `super_admin` → **403/404** en rutas de `Submission`, `Evaluation` y
+  `CourseMessage` **con la URL construida a mano** (no enlazada).
+- `Settings` en `production` con placeholder de secreto → error de validación.
+- Cleanup: borra `pending_payment` > 7 días y **no** borra `trialing`.
+- **Prueba de mutación de la Fase B**: sabotear la verificación de firma
+  (aceptar cualquier payload) → el test de firma inválida **debe fallar**;
+  revertir y **pegar aquí la evidencia** (pendiente al implementar).
+
+### 12.5 Entorno local (documentado en COMANDOS_DE_LA_APP.md)
+
+- Claves **solo test** (`sk_test_`/`pk_test_`); nunca claves de producción.
+- `stripe listen --forward-to localhost:8000/api/v1/webhooks/stripe` → el
+  `whsec_` del tunnel va a `STRIPE_WEBHOOK_SECRET` del `.env` local;
+  `stripe trigger checkout.session.completed` para disparar eventos de prueba.
+- El `whsec_` local (tunnel) **≠** el de producción (dashboard): es una variable
+  por entorno, jamás un valor fijo en código.
+- Resend en modo prueba: entrega en bandeja real sin dominio verificado
+  (remitente por defecto `onboarding@resend.dev`).
+
+### 12.6 Gates para cerrar la Fase B
+
+`ruff check` + `ruff format --check` + `mypy app` + `pytest --cov=app` (≥80 %),
+la **mutación de firma en rojo y revertida**, entrada en `CHANGELOG.md`, y este
+PLAN mostrado → **parar** antes de empezar la Fase C.

@@ -28,6 +28,7 @@
   - [🎯 Propósito de esta guía](#-propósito-de-esta-guía)
   - [📦 Requisitos previos](#-requisitos-previos)
   - [🔐 Variables de entorno](#-variables-de-entorno)
+  - [🏦 Stripe local en desarrollo (Fase B)](#-stripe-local-en-desarrollo-fase-b)
   - [🐳 Opción A — Arranque con Docker (recomendado)](#-opción-a--arranque-con-docker-recomendado)
   - [💻 Opción B — Arranque local sin Docker](#-opción-b--arranque-local-sin-docker)
     - [B1. Instalar dependencias](#b1-instalar-dependencias)
@@ -115,6 +116,52 @@ Copy-Item .env.example .env
 | `AULA_ADMIN_EMAIL` / `AULA_ADMIN_PASSWORD` | Solo al crear el primer admin | ver abajo |
 
 Frontend (Vite): `VITE_API_BASE_URL` → `http://localhost:8000/api/v1`.
+
+---
+
+## 🏦 Stripe local en desarrollo (Fase B)
+
+Para probar el alta de organizaciones con Stripe Checkout **sin claves de
+producción** (documentación de la Fase B en
+[PLAN_CLAUDE.md](../PLAN/PLAN_CLAUDE.md)):
+
+| Regla | Detalle |
+|-------|---------|
+| Claves | Solo claves **test**: `sk_test_…` / `pk_test_…`. **Nunca** `sk_live_…` |
+| `STRIPE_WEBHOOK_SECRET` (local) | Sale de `stripe listen` (tunnel), **no** del dashboard |
+| `STRIPE_WEBHOOK_SECRET` (producción) | Es el `whsec_` del dashboard (Developers → Webhooks): **otro valor distinto**. Cada entorno lleva el suyo en su `.env`; nunca se fija en código |
+| Email (Resend) | Modo prueba: el email llega a la bandeja real sin dominio verificado (remitente por defecto `onboarding@resend.dev`) |
+
+1. Instala y autentica la [Stripe CLI](https://stripe.com/docs/stripe-cli):
+
+```bash
+stripe --version
+stripe login   # abre el navegador y pega el código de confirmación
+```
+
+2. **Terminal 3** — reenvía los webhooks a la API local (con la API en marcha en
+   el puerto 8000):
+
+```bash
+stripe listen --forward-to localhost:8000/api/v1/webhooks/stripe
+```
+
+La salida muestra el secreto de este tunnel:
+
+```bash
+> Ready! Your webhook signing secret is whsec_xxx   # copia este valor
+STRIPE_WEBHOOK_SECRET=whsec_xxx                     # va en tu .env local
+```
+
+3. Dispara un evento de prueba desde otra terminal:
+
+```bash
+stripe trigger checkout.session.completed
+```
+
+> El `whsec_` de `stripe listen` **solo sirve para tu tunnel local**; el de
+> producción es otro. Por eso vive en una variable de entorno y por eso la app
+> exige ambos en `production`.
 
 ---
 
