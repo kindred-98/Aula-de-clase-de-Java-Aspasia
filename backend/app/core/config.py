@@ -43,6 +43,20 @@ class Settings(BaseSettings):
 
     max_upload_mb: int = 10
 
+    # --- Stripe / facturación (Fase B) ---
+    # En producción deben definirse y no ser el placeholder (ver validación abajo)
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    stripe_price_starter: str = ""
+    stripe_price_growth: str = ""
+    stripe_price_campus: str = ""
+
+    # --- Email transaccional (Resend, Fase B) ---
+    resend_api_key: str = ""
+    email_from: str = "Aspasia <onboarding@resend.dev>"
+    # Base pública para enlaces (activación, success/cancel del Checkout)
+    public_base_url: str = "http://localhost:5173"
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _strip_origins(cls, value: object) -> object:
@@ -51,14 +65,23 @@ class Settings(BaseSettings):
         return value
 
     @model_validator(mode="after")
-    def _check_production_secret(self) -> "Settings":
+    def _check_production_secrets(self) -> "Settings":
         insecure = "dev-only-insecure-secret-change-me-32chars"
-        if self.environment == "production" and (
-            self.secret_key == insecure or len(self.secret_key) < 32
-        ):
-            raise ValueError(
-                "SECRET_KEY debe definirse explícitamente (>= 32 caracteres) en producción"
-            )
+        if self.environment == "production":
+            if self.secret_key == insecure or len(self.secret_key) < 32:
+                raise ValueError(
+                    "SECRET_KEY debe definirse explícitamente (>= 32 caracteres) en producción"
+                )
+            required = {
+                "STRIPE_SECRET_KEY": self.stripe_secret_key,
+                "STRIPE_WEBHOOK_SECRET": self.stripe_webhook_secret,
+                "RESEND_API_KEY": self.resend_api_key,
+            }
+            for name, value in required.items():
+                if not value.strip() or "placeholder" in value.lower():
+                    raise ValueError(
+                        f"{name} debe definirse en producción (sin placeholder de desarrollo)"
+                    )
         return self
 
     @property

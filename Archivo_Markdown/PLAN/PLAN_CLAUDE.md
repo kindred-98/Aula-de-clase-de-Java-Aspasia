@@ -551,13 +551,13 @@ nuevas).
 
 ---
 
-## 12. Fase B (registro + Stripe Checkout + webhooks + EmailService + activación) — PLAN
+## 12. Fase B (registro + Stripe Checkout + webhooks + EmailService + activación) — IMPLEMENTADA
 
-**Estado: PLAN, sin implementar.** Origen: secciones 4, 5, 6 y 8 de
+**Estado: IMPLEMENTADA y con todos los gates en verde** (commit de la fase
+pendiente de usuario). Origen: secciones 4, 5, 6 y 8 de
 [Super-admin-prompt.md](../1-REVISION_DE_CODIGO_CLAUDE/Super-admin-prompt.md).
-Esta sección define el alcance comprometido; **no se escribe código hasta que
-se confirme su revisión**. Fuera de esta fase: CRUD de `superadmin/*` y
-aislamiento por organización → Fase C; frontend y 2FA TOTP → Fase D.
+Fuera de esta fase: CRUD de `superadmin/*` y aislamiento por organización →
+Fase C; frontend y 2FA TOTP → Fase D.
 
 ### 12.1 Alcance (solo backend)
 
@@ -649,10 +649,23 @@ aislamiento por organización → Fase C; frontend y 2FA TOTP → Fase D.
 - `super_admin` → **403/404** en rutas de `Submission`, `Evaluation` y
   `CourseMessage` **con la URL construida a mano** (no enlazada).
 - `Settings` en `production` con placeholder de secreto → error de validación.
-- Cleanup: borra `pending_payment` > 7 días y **no** borra `trialing`.
-- **Prueba de mutación de la Fase B**: sabotear la verificación de firma
-  (aceptar cualquier payload) → el test de firma inválida **debe fallar**;
-  revertir y **pegar aquí la evidencia** (pendiente al implementar).
+- Cleanup: borra `pending_payment` > 7 días y **no** borra `trialing` ni
+  organizaciones con usuarios.
+- **Prueba de mutación de la Fase B (REALIZADA)**: sabotaje en
+  `routes/webhooks.py` — el `except` de la verificación de firma pasó a
+  `pass` (se acepta cualquier payload). Resultado, en rojo:
+
+  ```text
+  FAILED tests/test_saas_phase_b.py::test_webhook_without_signature_returns_400_and_changes_nothing
+  FAILED tests/test_saas_phase_b.py::test_webhook_rejects_signature_from_another_secret
+  FAILED tests/test_saas_phase_b.py::test_webhook_rejects_garbage_payload_with_valid_signature
+  E   assert 200 == 400   (+ where 200 = <Response [200 OK]>.status_code)
+  3 failed, 13 deselected
+  ```
+
+  Revertido el sabotaje → **16/16 en verde**. La suite detecta la ausencia
+  de verificación de firma: sin ella, un POST sin firma o firmado con la
+  clave de otro secreto, iría a 200 y procesaría el evento.
 
 ### 12.5 Entorno local (documentado en COMANDOS_DE_LA_APP.md)
 
@@ -665,8 +678,19 @@ aislamiento por organización → Fase C; frontend y 2FA TOTP → Fase D.
 - Resend en modo prueba: entrega en bandeja real sin dominio verificado
   (remitente por defecto `onboarding@resend.dev`).
 
-### 12.6 Gates para cerrar la Fase B
+### 12.6 Gates para cerrar la Fase B — RESULTADO
 
-`ruff check` + `ruff format --check` + `mypy app` + `pytest --cov=app` (≥80 %),
-la **mutación de firma en rojo y revertida**, entrada en `CHANGELOG.md`, y este
-PLAN mostrado → **parar** antes de empezar la Fase C.
+- `ruff check .` → **All checks passed**; `ruff format --check .` →
+  **97 files already formatted**; `mypy app` → **no issues (72 files)**.
+- `pytest --cov=app --cov-fail-under=80` → **149 tests, 86.50 %**
+  (Fase A: 133/86.71 %; los 16 nuevos viven en `test_saas_phase_b.py`;
+  módulos nuevos: `email.py` y `plans.py` al 100 %, `activation.py` 90 %,
+  `stripe_webhooks.py` 73 %).
+- Migración `f4e5d6c7b8a9` aplicada a `dev.db` (`alembic current` → head).
+- Frontend sin cambios: `npm run lint` y `npm run test` → **66 tests**.
+- **Mutación de firma: en rojo y revertida** (evidencia en 12.4).
+- Entrada en `CHANGELOG.md` (`## [Fase B SaaS] — 2026-09-26`).
+
+**Siguiente: Fase C** (aislamiento por `organization_id` + rutas
+`/superadmin/*`) — condición no negociable descrita en 11.5, con sus tests
+de aislamiento cruzado y su propia prueba de mutación.

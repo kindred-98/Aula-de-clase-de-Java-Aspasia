@@ -15,6 +15,7 @@ from app.models.course_message import CourseMessage, CourseMessageRead
 from app.models.message import Message
 from app.models.organization import Organization, OrgStatus
 from app.models.scale import Cohort, CohortMembership, CourseCategory, CustomRole
+from app.models.stripe_event import StripeWebhookEvent
 from app.models.system import SystemSetting
 from app.models.user import RefreshToken, User, UserRole
 from app.models.work import (
@@ -53,6 +54,7 @@ __all__ = [
     "Seat",
     "Section",
     "SectionKind",
+    "StripeWebhookEvent",
     "Submission",
     "SubmissionFile",
     "SubmissionStatus",

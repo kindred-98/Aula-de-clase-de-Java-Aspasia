@@ -56,6 +56,7 @@ def test_all_tables_created() -> None:
         "cohort_members",
         "custom_roles",
         "organizations",
+        "stripe_webhook_events",
     }
     session.close()
 

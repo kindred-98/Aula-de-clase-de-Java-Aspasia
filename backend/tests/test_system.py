@@ -58,7 +58,14 @@ def test_csp_in_production(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         main_module,
         "settings",
-        Settings(_env_file=None, environment="production", secret_key="p" * 40),
+        Settings(
+            _env_file=None,
+            environment="production",
+            secret_key="p" * 40,
+            stripe_secret_key="sk_live_key_001",
+            stripe_webhook_secret="whsec_live_key_001",
+            resend_api_key="re_key_001",
+        ),
     )
     prod_app = main_module.create_app()
     with TestClient(prod_app) as client:

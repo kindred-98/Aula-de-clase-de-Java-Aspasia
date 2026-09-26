@@ -16,16 +16,20 @@ from app.api.v1.routes import (
     phase3,
     phase_c,
     phase_d,
+    public,
     rubrics,
     sections,
     student,
     teacher,
+    webhooks,
     work,
 )
 
 api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(auth.router)
+api_router.include_router(public.router)
+api_router.include_router(webhooks.router)
 api_router.include_router(courses.router)
 api_router.include_router(work.router)
 api_router.include_router(sections.router)

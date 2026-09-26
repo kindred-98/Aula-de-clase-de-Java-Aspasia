@@ -196,6 +196,15 @@ def login_staff(
         raise AuthError("Invalid credentials")
 
     _require_active(user)
+    if user.password_hash is None:
+        # Cuenta creada por el webhook de Stripe y aún sin activar: rechazo
+        # explícito (nunca llegar a verify_password) + traza en AuditLog.
+        record_failed_login(db, identifier=email, ip=ip, reason="not_activated")
+        db.commit()
+        raise AuthError(
+            "Account not activated. Check your email for the activation link.",
+            status_code=401,
+        )
     if not verify_secret(password, user.password_hash):
         record_failed_login(db, identifier=email, ip=ip)
         db.commit()

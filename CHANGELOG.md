@@ -4,6 +4,77 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
 **Documentación relacionada**: [README](./README.md) · índice [Explicacion_de_Cada_ARCHIVO](./Archivo_Markdown/Explicacion_de_Cada_ARCHIVO.md) · planes ([Claude](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md), [Admin](./Archivo_Markdown/PLAN/PLAN_ADMIN.md), [Profesor](./Archivo_Markdown/PLAN/PLAN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLAN/PLAN_ALUMNO.md), [Super-admin](./Archivo_Markdown/PLAN/PLAN_SUPER_ADMIN.md)) · informes ([Admin](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md), [Profesor](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ALUMNO.md)) · [comandos](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md).
 
+## [Fase B SaaS] — 2026-09-26
+
+### Hecho
+
+- Backend (Fase B de `1-REVISION_DE_CODIGO_CLAUDE/Super-admin-prompt.md`):
+  - **Rutas públicas** (`routes/public.py`): `GET /public/plans`
+    (catálogo estático de 3 planes en `services/plans.py`, sin tabla
+    propia) y `POST /public/organizations` → `Organization`
+    `pending_payment` **sin crear `User`** + Stripe Checkout Session
+    (`mode=subscription`, trial 14 días en `subscription_data`,
+    `payment_method_collection=always`, `metadata.organization_id`;
+    404 plan inexistente, 409 email ya cliente, 503 sin Price,
+    502 si falla Stripe).
+  - **Webhook** `POST /webhooks/stripe` con **verificación de firma
+    obligatoria** (`stripe.Webhook.construct_event`; ausente, inválida o
+    de otro `whsec_` → 400 sin ningún efecto) + **idempotencia** por
+    `event_id` (tabla nueva `stripe_webhook_events`). Eventos:
+    `checkout.session.completed` → `org_admin` con token de activación
+    hasheado y `password_hash=NULL` + org `trialing`;
+    `trial_will_end` → email de aviso 3 días antes;
+    `invoice.payment_succeeded/failed` → `active`/`past_due`;
+    `customer.subscription.deleted` → `canceled`. Emails se envían
+    **tras** el commit (best-effort).
+  - **Activación** (`services/activation.py`): token aleatorio de un
+    solo uso, hash sha256 en BD, 48 h; `GET/POST /auth/activate`;
+    `GET` con token inválido/expirado → 400.
+  - **Login staff con `password_hash NULL` → 401 explícito**
+    ("Account not activated…", sin llegar a `verify_password`) con
+    registro en AuditLog (`reason=not_activated`).
+  - **`EmailService`** abstracto + `ResendEmailService` (REST vía
+    httpx) y `ConsoleEmailService` (sin `RESEND_API_KEY` en dev, el
+    enlace va al log).
+  - **Config**: `Settings` con `STRIPE_SECRET_KEY`,
+    `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_*`, `RESEND_API_KEY`,
+    `EMAIL_FROM`, `PUBLIC_BASE_URL`; en `production` los tres secretos
+    son obligatorios y no-placeholder (validación + test).
+    `.env.example` ampliado.
+  - **Limpieza**: `python -m scripts.cleanup_pending_organizations`
+    (borra `pending_payment` >7 días; nunca con usuarios).
+  - Dependencias: `stripe==15.6.1` y `httpx` pasan a runtime
+    (`github_meta` ya lo importaba).
+  - Migración alembic `f4e5d6c7b8a9` (revis. `e1a2b3c4d5f6`):
+    tabla `stripe_webhook_events`; `dev.db` migrado al head.
+  - Tests: `tests/test_saas_phase_b.py` (**16**: firma ausente/otra
+    clave/payload basura → 400 sin efectos, flujo completo registro →
+    Checkout → webhook → `org_admin` + email + idempotencia, login
+    bloqueado hasta activar, activación con reuso y caducidad,
+    ciclo de vida de la suscripción, super_admin bloqueado en
+    Submission/Evaluation/CourseMessage con URLs construidas a mano,
+    Settings en producción, cleanup, catálogo, conflictos de registro,
+    Checkout con `stripe.checkout.Session.create` parcheado y
+    EmailService).
+- Documentación: entorno local de Stripe (`stripe listen`/`stripe
+  trigger`, `whsec_` local ≠ producción, Resend en modo test) en
+  `COMANDOS_DE_LA_APP.md` y `backend/README.md`; PLAN_CLAUDE.md §12.
+- Gates: backend **149 tests · 86.50 %** (ruff, format, mypy,
+  cobertura verdes); frontend **66 tests** sin cambios (lint y tests
+  verdes). Mutación de firma detectada: con la verificación
+  sabotada, los tests de firma fallan (`200 == 400`) y tras revertir
+  vuelven a verde.
+
+### Pendiente / limitaciones
+
+- Fuera del alcance de la Fase B: `/superadmin/*` y filtrado por
+  `organization_id` en las rutas existentes (**Fase C**, condición no
+  negociable), frontend (`/precios`, `/registro-empresa`,
+  `/activar-cuenta/:token`) y 2FA TOTP de super_admin (**Fase D**).
+- El envío real de email requiere `RESEND_API_KEY`; en desarrollo el
+  enlace de activación sale por log. `stripe_billing` solo se prueba
+  con la API de Stripe parcheada (sin red).
+
 ## [Fase A SaaS] — 2026-09-26
 
 ### Hecho

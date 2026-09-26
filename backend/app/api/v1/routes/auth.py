@@ -15,6 +15,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserPublic,
 )
+from app.schemas.public import ActivationInfoResponse, ActivationRequest, ActivationResponse
 from app.security.policies import (
     CurrentUser,
     CurrentUserWithPendingChange,
@@ -22,6 +23,7 @@ from app.security.policies import (
     current_user_from_token,
 )
 from app.services import auth_service
+from app.services.activation import ActivationError, activate_account, find_user_by_activation_token
 from app.services.auth_service import REFRESH_COOKIE_PATH, AuthError
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -197,3 +199,25 @@ def change_credentials(
     except AuthError as exc:
         raise _handle_auth_error(exc) from exc
     return UserPublic.model_validate(updated)
+
+
+@router.get("/activate", response_model=ActivationInfoResponse)
+def activation_info(token: str, db: DbSession) -> ActivationInfoResponse:
+    """Valida el token de activación (email de alta) para mostrar la pantalla."""
+    user = find_user_by_activation_token(db, token)
+    if user is None:
+        raise HTTPException(status_code=400, detail="Invalid or expired activation token")
+    return ActivationInfoResponse(
+        email=user.email or "",
+        expires_at=user.activation_token_expires_at,
+    )
+
+
+@router.post("/activate", response_model=ActivationResponse)
+def activation(body: ActivationRequest, db: DbSession) -> ActivationResponse:
+    """Crea la contraseña de la cuenta de organización (token de un solo uso)."""
+    try:
+        user = activate_account(db, token=body.token, password=body.password)
+    except ActivationError as exc:
+        raise HTTPException(status_code=400, detail=exc.detail) from exc
+    return ActivationResponse(status="activated", email=user.email or "")
