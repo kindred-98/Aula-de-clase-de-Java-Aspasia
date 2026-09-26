@@ -85,7 +85,7 @@ describe("Mensajes Fase B", () => {
           {
             id: 1,
             name: "Admin",
-            role: "admin",
+            role: "org_admin",
             username: null,
             email: "admin@aula.test",
             course_ids: [],

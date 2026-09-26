@@ -11,18 +11,27 @@ from app.models import (
     CourseStatus,
     CourseTeacher,
     Enrollment,
+    Organization,
     Seat,
     User,
     UserRole,
 )
+from app.services.organization import get_or_create_default_organization
+
+
+def make_org(db: Session) -> Organization:
+    """Organización por defecto del test (la crea si no existe)."""
+    return get_or_create_default_organization(db, billing_email="admin@aula.test")
 
 
 def make_admin(db: Session, **kwargs: Any) -> User:
+    org = make_org(db)
     user = User(
         name=kwargs.get("name", "Admin"),
         email=kwargs.get("email", "admin@aula.test"),
         username=kwargs.get("username"),
-        role=UserRole.admin,
+        role=UserRole.org_admin,
+        organization_id=org.id,
         password_hash=hash_secret(kwargs.get("password", "admin-secret-1")),
         is_active=True,
         must_change_credentials=False,
@@ -33,11 +42,29 @@ def make_admin(db: Session, **kwargs: Any) -> User:
     return user
 
 
+def make_super_admin(db: Session, **kwargs: Any) -> User:
+    user = User(
+        name=kwargs.get("name", "Root"),
+        email=kwargs.get("email", "root@aula.test"),
+        role=UserRole.super_admin,
+        organization_id=None,
+        password_hash=hash_secret(kwargs.get("password", "root-secret-1")),
+        is_active=True,
+        must_change_credentials=False,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def make_teacher(db: Session, **kwargs: Any) -> User:
+    org = make_org(db)
     user = User(
         name=kwargs.get("name", "Profe"),
         email=kwargs.get("email", "profe@aula.test"),
         role=UserRole.teacher,
+        organization_id=org.id,
         password_hash=hash_secret(kwargs.get("password", "teacher-secret-1")),
         is_active=True,
         must_change_credentials=False,
@@ -56,10 +83,12 @@ def make_student(
     pin: str = "123456",
     must_change: bool = False,
 ) -> User:
+    org = make_org(db)
     user = User(
         name=name,
         username=username,
         role=UserRole.student,
+        organization_id=org.id,
         pin_hash=hash_secret(pin),
         is_active=True,
         must_change_credentials=must_change,
@@ -71,6 +100,7 @@ def make_student(
 
 
 def make_course(db: Session, *, code: str = "JAVA1", rows: int = 3, cols: int = 5) -> Course:
+    org = make_org(db)
     course = Course(
         name="Java",
         code=code,
@@ -78,6 +108,7 @@ def make_course(db: Session, *, code: str = "JAVA1", rows: int = 3, cols: int = 
         status=CourseStatus.active,
         layout_rows=rows,
         layout_cols=cols,
+        organization_id=org.id,
         settings={},
     )
     db.add(course)

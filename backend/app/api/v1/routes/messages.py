@@ -77,11 +77,11 @@ def _can_message(db: Session, sender: User, recipient: User) -> None:
     if not recipient.is_active:
         raise HTTPException(status_code=404, detail="Recipient not found")
 
-    if sender.role is UserRole.admin:
+    if sender.role is UserRole.org_admin:
         return
 
     if sender.role is UserRole.teacher:
-        if recipient.role is UserRole.admin:
+        if recipient.role is UserRole.org_admin:
             return
         if recipient.role is UserRole.student:
             if _shared_active_course_ids(db, sender.id, recipient.id):
@@ -90,7 +90,7 @@ def _can_message(db: Session, sender: User, recipient: User) -> None:
         raise HTTPException(status_code=403, detail="Not allowed to message this user")
 
     # student
-    if recipient.role is UserRole.admin:
+    if recipient.role is UserRole.org_admin:
         return
     if recipient.role is UserRole.teacher:
         if _shared_active_course_ids(db, sender.id, recipient.id):
@@ -104,7 +104,7 @@ def _can_message(db: Session, sender: User, recipient: User) -> None:
 
 
 def _directory_for(db: Session, user: User) -> list[MessageDirectoryEntry]:
-    if user.role is UserRole.admin:
+    if user.role is UserRole.org_admin:
         rows = db.scalars(
             select(User).where(User.is_active.is_(True), User.id != user.id).order_by(User.name)
         ).all()
@@ -121,7 +121,7 @@ def _directory_for(db: Session, user: User) -> list[MessageDirectoryEntry]:
 
     if user.role is UserRole.teacher:
         admins = db.scalars(
-            select(User).where(User.role == UserRole.admin, User.is_active.is_(True))
+            select(User).where(User.role == UserRole.org_admin, User.is_active.is_(True))
         ).all()
         student_ids = list(
             db.scalars(
@@ -165,7 +165,7 @@ def _directory_for(db: Session, user: User) -> list[MessageDirectoryEntry]:
     # student
     my_courses = set(_classmate_course_ids(db, user.id))
     admins = db.scalars(
-        select(User).where(User.role == UserRole.admin, User.is_active.is_(True))
+        select(User).where(User.role == UserRole.org_admin, User.is_active.is_(True))
     ).all()
     teacher_ids = (
         list(
@@ -268,7 +268,7 @@ def unread_count(
 
     # cursos visibles: matrículas activas o staff
     course_ids = set(_classmate_course_ids(db, user.id))
-    if user.role in (UserRole.admin, UserRole.teacher):
+    if user.role in (UserRole.org_admin, UserRole.teacher):
         if user.role is UserRole.teacher:
             rows = db.scalars(
                 select(CourseTeacher.course_id).where(CourseTeacher.teacher_id == user.id)

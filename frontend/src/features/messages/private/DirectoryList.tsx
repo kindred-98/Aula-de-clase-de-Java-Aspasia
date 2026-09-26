@@ -8,7 +8,7 @@ type Props = {
 };
 
 const roleLabel: Record<string, string> = {
-  admin: "Admin",
+  org_admin: "Admin",
   teacher: "Profe",
   student: "Alumno",
 };

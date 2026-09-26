@@ -29,9 +29,9 @@ function json(body: unknown): Response {
   });
 }
 
-function authAs(role: "teacher" | "student" | "admin", effective?: string[]) {
-  const name = role === "teacher" ? "Profe" : role === "admin" ? "Admin" : "Ana";
-  const granted = effective ?? (role === "admin" ? ["reports.view"] : []);
+function authAs(role: "teacher" | "student" | "org_admin", effective?: string[]) {
+  const name = role === "teacher" ? "Profe" : role === "org_admin" ? "Admin" : "Ana";
+  const granted = effective ?? (role === "org_admin" ? ["reports.view"] : []);
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string) => {
@@ -266,7 +266,7 @@ describe("Fase T0 — estructura del panel del profesor", () => {
   });
 
   it("un admin supera el guard", async () => {
-    authAs("admin");
+    authAs("org_admin");
     renderRoutes(["/teacher"]);
 
     expect(await screen.findByRole("heading", { name: /panel del profesor/i })).toBeInTheDocument();
@@ -315,7 +315,7 @@ describe("Fase T4 — permisos, reportes y export", () => {
   });
 
   it("un admin accede directo a /admin/reports", async () => {
-    authAs("admin");
+    authAs("org_admin");
     renderRoutes(["/admin/reports"]);
 
     expect(await screen.findByRole("heading", { name: "Reportes" })).toBeInTheDocument();

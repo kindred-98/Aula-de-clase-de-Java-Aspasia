@@ -16,7 +16,7 @@ export function TeacherLayout() {
   const pending = usePendingCount();
   const pendingTotal = pending.data?.pending ?? 0;
   const canSeeReports =
-    user?.role === "admin" || (permissions.data?.effective ?? []).includes("reports.view");
+    user?.role === "org_admin" || (permissions.data?.effective ?? []).includes("reports.view");
 
   return (
     <div className="grid gap-6 lg:grid-cols-[220px_1fr]">

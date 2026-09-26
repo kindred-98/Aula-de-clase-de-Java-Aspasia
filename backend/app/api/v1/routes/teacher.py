@@ -43,7 +43,7 @@ def _as_aware(dt: datetime) -> datetime:
 
 
 def _my_course_ids(db: Session, user: User) -> list[int]:
-    if user.role is UserRole.admin:
+    if user.role is UserRole.org_admin:
         return [int(cid) for cid in db.scalars(select(Course.id).order_by(Course.id)).all()]
     rows = db.scalars(
         select(CourseTeacher.course_id).where(CourseTeacher.teacher_id == user.id)
@@ -52,7 +52,7 @@ def _my_course_ids(db: Session, user: User) -> list[int]:
 
 
 def _assert_teacher(user: User) -> None:
-    if user.role not in (UserRole.teacher, UserRole.admin):
+    if user.role not in (UserRole.teacher, UserRole.org_admin):
         raise HTTPException(status_code=403, detail="Teacher access required")
 
 

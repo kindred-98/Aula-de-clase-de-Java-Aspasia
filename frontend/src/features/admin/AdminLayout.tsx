@@ -12,7 +12,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const permissions = usePermissions();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "org_admin";
   const canSeeReports = isAdmin || (permissions.data?.effective ?? []).includes("reports.view");
 
   return (

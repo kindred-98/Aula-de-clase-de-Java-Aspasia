@@ -2,7 +2,53 @@
 
 Formato: [Keep a Changelog](https://keepachangelog.com/es/1.1.0/).
 
-**Documentación relacionada**: [README](./README.md) · índice [Explicacion_de_Cada_ARCHIVO](./Archivo_Markdown/Explicacion_de_Cada_ARCHIVO.md) · planes ([Claude](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md), [Admin](./Archivo_Markdown/PLAN/PLAN_ADMIN.md), [Profesor](./Archivo_Markdown/PLAN/PLAN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLAN/PLAN_ALUMNO.md)) · informes ([Admin](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md), [Profesor](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ALUMNO.md)) · [comandos](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md).
+**Documentación relacionada**: [README](./README.md) · índice [Explicacion_de_Cada_ARCHIVO](./Archivo_Markdown/Explicacion_de_Cada_ARCHIVO.md) · planes ([Claude](./Archivo_Markdown/PLAN/PLAN_CLAUDE.md), [Admin](./Archivo_Markdown/PLAN/PLAN_ADMIN.md), [Profesor](./Archivo_Markdown/PLAN/PLAN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLAN/PLAN_ALUMNO.md), [Super-admin](./Archivo_Markdown/PLAN/PLAN_SUPER_ADMIN.md)) · informes ([Admin](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ADMIN.md), [Profesor](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_PROFESOR.md), [Alumno](./Archivo_Markdown/PLANES_APLICADO_CON_EXITO/TRABAJO_REALIZADO_EN_ALUMNO.md)) · [comandos](./Archivo_Markdown/COMANDOS/COMANDOS_DE_LA_APP.md).
+
+## [Fase A SaaS] — 2026-09-26
+
+### Hecho
+
+- Backend (Fase A de `1-REVISION_DE_CODIGO_CLAUDE/Super-admin-prompt.md`):
+  - Modelos: `Organization` + `OrgStatus`
+    (pending_payment/trialing/active/past_due/canceled) en
+    `models/organization.py`; `users.organization_id`,
+    `activation_token_hash` y `activation_token_expires_at`;
+    `courses.organization_id NOT NULL`.
+  - Roles: `UserRole = super_admin | org_admin | teacher | student`
+    (renombrado `admin → org_admin` en toda la API) + dos CHECK en
+    `users`: `ck_users_org_by_role` (solo super_admin sin organización)
+    y `ck_users_role_valid` (domino cerrado de roles).
+  - `security/policies.py`: super_admin sin acceso académico
+    (`can_read_submission → False`, `user_permissions → []`;
+    `require_admin`/staff siguen denegándolo).
+  - `routes/admin.py`: usuarios, CSV y cursos heredan la organización
+    del admin; crear o promover a `super_admin` por API → 403 (solo CLI).
+  - Migración alembic `e1a2b3c4d5f6` (revis. `d9a4b5c6e7f8`): tabla
+    `organizations`, org por defecto, backfill `admin → org_admin` +
+    `organization_id`, índices/FKs, rama PostgreSQL con swap seguro del
+    tipo `userrole` y downgrade reversible. `dev.db` migrado.
+  - CLI `python -m scripts.create_admin --role org_admin|super_admin`
+    (env vars `AULA_ADMIN_*` de fallback), helper
+    `services/organization.get_or_create_default_organization` y
+    `seed_demo` con organización.
+  - Tests: `tests/test_saas_phase_a.py` (8: migración con ciclo
+    upgrade/downgrade sobre datos crudos, constraints, CLI con
+    `SessionLocal` parcheado, 403 de super_admin por API y permisos).
+    Comprobación de mutación: sabotar el backfill o el CHECK hace
+    fallar la suite (detectado y revertido).
+- Frontend: literales de rol `admin → org_admin` en guards, layout,
+  formularios, `roleLabel` y mocks de tests; `lib/api.ts` añade
+  `super_admin` a la unión de roles (sin rutas nuevas).
+- Gates: backend **133 tests** (ruff, format, mypy y cobertura verdes);
+  frontend **66 tests** (lint, format, typecheck y build verdes).
+
+### Pendiente / limitaciones
+
+- Fuera del alcance de la Fase A: registro público con activación
+  (Fase B), Stripe/webhooks (Fase B-C) y rutas nuevas de frontend
+  `/superadmin/*` (Fase C).
+- El listado de cursos/usuarios aún no filtra por tenant (aislamiento =
+  Fase C); super_admin puede iniciar sesión pero aterriza en `/`.
 
 ## [Fase S] — 2026-09-25
 

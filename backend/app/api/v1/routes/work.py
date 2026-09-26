@@ -56,7 +56,7 @@ def _get_course(db: Session, course_id: int) -> Course:
 
 
 def _assert_enrolled(db: Session, user: User, course_id: int) -> None:
-    if user.role in (UserRole.admin, UserRole.teacher):
+    if user.role in (UserRole.org_admin, UserRole.teacher):
         return
     row = db.scalar(
         select(Enrollment).where(
@@ -87,8 +87,8 @@ def _serialize_submission(
     if full is None:
         # Solo owner/staff ven evaluaciones; peer con visibility=class no
         is_owner = sub.student_id == user.id
-        is_staff = user.role in (UserRole.admin, UserRole.teacher) and (
-            user.role is UserRole.admin
+        is_staff = user.role in (UserRole.org_admin, UserRole.teacher) and (
+            user.role is UserRole.org_admin
             or db.scalar(
                 select(CourseTeacher).where(
                     CourseTeacher.course_id == sub.course_id,
@@ -524,7 +524,7 @@ def list_evaluations(
         raise HTTPException(status_code=404, detail="Submission not found")
     _visible_submission(db, user, sub)
     is_owner = sub.student_id == user.id
-    is_staff = user.role in (UserRole.admin, UserRole.teacher)
+    is_staff = user.role in (UserRole.org_admin, UserRole.teacher)
     if not (is_owner or is_staff):
         # Peer: jamás evals ajenas
         return []

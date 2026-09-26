@@ -83,6 +83,11 @@ def create_user(
         raise HTTPException(status_code=422, detail="username required for students")
     if body.role is not UserRole.student and not body.email:
         raise HTTPException(status_code=422, detail="email required for staff")
+    if body.role is UserRole.super_admin:
+        raise HTTPException(
+            status_code=403,
+            detail="super_admin only via CLI (scripts.create_admin --role super_admin)",
+        )
     if body.email and db.scalar(select(User).where(User.email == body.email)):
         raise HTTPException(status_code=409, detail="Email already exists")
     if body.username and db.scalar(select(User).where(User.username == body.username)):
@@ -95,6 +100,8 @@ def create_user(
         username=body.username,
         role=body.role,
         is_active=True,
+        # Los usuarios creados por un admin pertenecen a su organización
+        organization_id=admin.organization_id,
         # El PIN/contraseña temporal que entrega el admin ya es el definitivo para students
         must_change_credentials=body.role is not UserRole.student,
     )
@@ -146,7 +153,12 @@ def update_user(
     if body.name is not None:
         user.name = body.name
     if body.role is not None:
-        if user.id == admin.id and body.role is not UserRole.admin:
+        if body.role is UserRole.super_admin:
+            raise HTTPException(
+                status_code=403,
+                detail="super_admin only via CLI (scripts.create_admin --role super_admin)",
+            )
+        if user.id == admin.id and body.role is not UserRole.org_admin:
             raise HTTPException(status_code=400, detail="Cannot demote yourself")
         user.role = body.role
     if body.is_active is not None:
@@ -302,6 +314,7 @@ def import_students_csv(
             role=UserRole.student,
             pin_hash=hash_secret(pin),
             is_active=True,
+            organization_id=admin.organization_id,
             must_change_credentials=False,
         )
         db.add(student)

@@ -85,7 +85,7 @@ def list_courses(
     db: DbSession,
     user: Annotated[User, Depends(CurrentUser)],
 ) -> list[CoursePublic]:
-    if user.role is UserRole.admin:
+    if user.role is UserRole.org_admin:
         rows = db.scalars(select(Course).order_by(Course.id)).all()
         return [CoursePublic.model_validate(c) for c in rows]
     if user.role is UserRole.teacher:
@@ -124,6 +124,7 @@ def create_course(
         description=body.description,
         layout_rows=body.layout_rows,
         layout_cols=body.layout_cols,
+        organization_id=_admin.organization_id,
         settings=body.settings,
     )
     db.add(course)
@@ -377,7 +378,7 @@ def my_enrollment(
         )
     )
     if enrollment is None:
-        if user.role in (UserRole.admin, UserRole.teacher):
+        if user.role in (UserRole.org_admin, UserRole.teacher):
             raise HTTPException(status_code=404, detail="No enrollment")
         raise HTTPException(status_code=404, detail="Course not found")
     return _enrollment_public(enrollment)
@@ -644,7 +645,7 @@ def my_course_progress(
 ) -> StudentCourseProgress:
     """Progreso propio en un curso (matriculado); solo sus entregas y su asistencia."""
     _user, course, enrollment = require_enrolled(db, user, _get_course(db, course_id))
-    if enrollment is None and user.role is not UserRole.admin:
+    if enrollment is None and user.role is not UserRole.org_admin:
         raise HTTPException(status_code=403, detail="Student access required")
 
     assignments = db.scalars(

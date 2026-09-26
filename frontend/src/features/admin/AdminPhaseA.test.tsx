@@ -41,7 +41,7 @@ function adminAuth() {
     name: "Admin",
     email: "admin@aula.test",
     username: null,
-    role: "admin",
+    role: "org_admin",
     is_active: true,
     must_change_credentials: false,
     created_at: new Date().toISOString(),

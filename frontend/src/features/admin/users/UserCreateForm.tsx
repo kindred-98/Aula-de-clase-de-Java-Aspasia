@@ -14,7 +14,7 @@ type Props = {
 
 export function UserCreateForm({ onCreated }: Props) {
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"admin" | "teacher" | "student">("teacher");
+  const [role, setRole] = useState<"org_admin" | "teacher" | "student">("teacher");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const queryClient = useQueryClient();
@@ -63,7 +63,7 @@ export function UserCreateForm({ onCreated }: Props) {
             onChange={(e) => setRole(e.target.value as typeof role)}
           >
             <option value="teacher">Profesora</option>
-            <option value="admin">Administración</option>
+            <option value="org_admin">Administración</option>
             <option value="student">Estudiante</option>
           </select>
         </label>

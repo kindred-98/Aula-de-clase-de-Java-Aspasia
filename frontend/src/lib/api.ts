@@ -245,7 +245,7 @@ export type UserPublic = {
   name: string;
   email: string | null;
   username: string | null;
-  role: "admin" | "teacher" | "student";
+  role: "super_admin" | "org_admin" | "teacher" | "student";
   is_active: boolean;
   must_change_credentials: boolean;
   created_at: string;

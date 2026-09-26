@@ -157,7 +157,7 @@ export function AdminUsersPage() {
           aria-label="Filtrar por rol"
         >
           <option value="">Todos los roles</option>
-          <option value="admin">admin</option>
+          <option value="org_admin">org_admin</option>
           <option value="teacher">teacher</option>
           <option value="student">student</option>
         </select>

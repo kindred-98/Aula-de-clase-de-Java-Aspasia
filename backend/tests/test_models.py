@@ -20,6 +20,7 @@ from app.models import (
     UserRole,
     Visibility,
 )
+from app.services.organization import get_or_create_default_organization
 
 
 def _session() -> Session:
@@ -54,12 +55,14 @@ def test_all_tables_created() -> None:
         "cohorts",
         "cohort_members",
         "custom_roles",
+        "organizations",
     }
     session.close()
 
 
 def test_course_code_unique() -> None:
     session = _session()
+    org = get_or_create_default_organization(session)
     session.add(
         Course(
             name="Java",
@@ -67,6 +70,7 @@ def test_course_code_unique() -> None:
             status=CourseStatus.active,
             layout_rows=3,
             layout_cols=5,
+            organization_id=org.id,
             settings={},
         )
     )
@@ -78,6 +82,7 @@ def test_course_code_unique() -> None:
             status=CourseStatus.active,
             layout_rows=3,
             layout_cols=5,
+            organization_id=org.id,
             settings={},
         )
     )
@@ -92,12 +97,14 @@ def test_course_code_unique() -> None:
 
 def test_seat_unique_position() -> None:
     session = _session()
+    org = get_or_create_default_organization(session)
     course = Course(
         name="Java",
         code="JAVA2",
         status=CourseStatus.active,
         layout_rows=3,
         layout_cols=5,
+        organization_id=org.id,
         settings={},
     )
     session.add(course)
@@ -116,15 +123,23 @@ def test_seat_unique_position() -> None:
 
 def test_enrollment_unique_student_per_course() -> None:
     session = _session()
+    org = get_or_create_default_organization(session)
     course = Course(
         name="Java",
         code="JAVA3",
         status=CourseStatus.active,
         layout_rows=3,
         layout_cols=5,
+        organization_id=org.id,
         settings={},
     )
-    student = User(name="Ana", role=UserRole.student, is_active=True, must_change_credentials=False)
+    student = User(
+        name="Ana",
+        role=UserRole.student,
+        organization_id=org.id,
+        is_active=True,
+        must_change_credentials=False,
+    )
     session.add_all([course, student])
     session.flush()
     session.add(Enrollment(course_id=course.id, student_id=student.id))
@@ -142,16 +157,22 @@ def test_enrollment_unique_student_per_course() -> None:
 def test_moving_seat_keeps_submissions() -> None:
     """Cambiar de asiento no debe perder entregas (asiento ≠ estudiante)."""
     session = _session()
+    org = get_or_create_default_organization(session)
     course = Course(
         name="Java",
         code="JAVA4",
         status=CourseStatus.active,
         layout_rows=3,
         layout_cols=5,
+        organization_id=org.id,
         settings={},
     )
     student = User(
-        name="Luis", role=UserRole.student, is_active=True, must_change_credentials=False
+        name="Luis",
+        role=UserRole.student,
+        organization_id=org.id,
+        is_active=True,
+        must_change_credentials=False,
     )
     session.add_all([course, student])
     session.flush()
@@ -179,18 +200,27 @@ def test_moving_seat_keeps_submissions() -> None:
 
 def test_evaluation_is_append_only_rows() -> None:
     session = _session()
+    org = get_or_create_default_organization(session)
     course = Course(
         name="Java",
         code="JAVA5",
         status=CourseStatus.active,
         layout_rows=3,
         layout_cols=5,
+        organization_id=org.id,
         settings={},
     )
-    student = User(name="Eva", role=UserRole.student, is_active=True, must_change_credentials=False)
+    student = User(
+        name="Eva",
+        role=UserRole.student,
+        organization_id=org.id,
+        is_active=True,
+        must_change_credentials=False,
+    )
     teacher = User(
         name="Profe",
         role=UserRole.teacher,
+        organization_id=org.id,
         email="p@x.io",
         password_hash="x",
         is_active=True,
@@ -225,16 +255,22 @@ def test_attendance_unique_per_day() -> None:
     from datetime import date
 
     session = _session()
+    org = get_or_create_default_organization(session)
     course = Course(
         name="Java",
         code="JAVA6",
         status=CourseStatus.active,
         layout_rows=3,
         layout_cols=5,
+        organization_id=org.id,
         settings={},
     )
     student = User(
-        name="Sara", role=UserRole.student, is_active=True, must_change_credentials=False
+        name="Sara",
+        role=UserRole.student,
+        organization_id=org.id,
+        is_active=True,
+        must_change_credentials=False,
     )
     session.add_all([course, student])
     session.flush()
@@ -272,17 +308,20 @@ def test_audit_log_action_index_exists() -> None:
 
 def test_assignment_defaults() -> None:
     session = _session()
+    org = get_or_create_default_organization(session)
     course = Course(
         name="Java",
         code="JAVA7",
         status=CourseStatus.active,
         layout_rows=3,
         layout_cols=5,
+        organization_id=org.id,
         settings={},
     )
     teacher = User(
         name="Profe",
         role=UserRole.teacher,
+        organization_id=org.id,
         email="p2@x.io",
         password_hash="x",
         is_active=True,

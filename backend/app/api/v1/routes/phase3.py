@@ -67,6 +67,7 @@ def clone_course(
         status=CourseStatus.active,
         layout_rows=source.layout_rows,
         layout_cols=source.layout_cols,
+        organization_id=source.organization_id,
         settings=dict(source.settings),
     )
     db.add(clone)

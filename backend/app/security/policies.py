@@ -96,16 +96,20 @@ def CurrentUserWithPendingChange(
 
 
 def require_admin(user: Annotated[User, Depends(CurrentUser)]) -> User:
-    if user.role is not UserRole.admin:
+    if user.role is not UserRole.org_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
 
 def user_permissions(user: User) -> list[str]:
-    """Permisos efectivos: admin → todos; resto → su rol personalizado."""
+    """Permisos efectivos: org_admin → todos; resto → su rol personalizado.
+
+    super_admin queda fuera a propósito: no toca datos académicos (Fase C tendrá
+    sus propias rutas /superadmin/*).
+    """
     from app.schemas.scale import KNOWN_PERMISSIONS
 
-    if user.role is UserRole.admin:
+    if user.role is UserRole.org_admin:
         return list(KNOWN_PERMISSIONS)
     if user.custom_role is not None:
         perms = user.custom_role.permissions or []
@@ -143,8 +147,8 @@ def require_staff_of_course(
     user: Annotated[User, Depends(CurrentUser)],
     course: CurrentCourse,
 ) -> tuple[User, Course]:
-    """Admin siempre; teacher solo si es de `course_teachers`."""
-    if user.role is UserRole.admin:
+    """Org_admin siempre; teacher solo si es de `course_teachers`."""
+    if user.role is UserRole.org_admin:
         return user, course
     if user.role is UserRole.teacher:
         link = db.scalar(
@@ -164,7 +168,7 @@ def require_teacher_of_course(
     user: Annotated[User, Depends(CurrentUser)],
     course: CurrentCourse,
 ) -> tuple[User, Course]:
-    """Solo teachers asignados (o admin); estudiantes nunca evalúan."""
+    """Solo teachers asignados (o org_admin); estudiantes nunca evalúan."""
     if user.role is UserRole.student:
         raise HTTPException(status_code=403, detail="Teacher access required")
     return require_staff_of_course(db, user, course)
@@ -175,8 +179,8 @@ def require_enrolled(
     user: Annotated[User, Depends(CurrentUser)],
     course: CurrentCourse,
 ) -> tuple[User, Course, Enrollment | None]:
-    """Student: matrícula activa. Teacher/admin del curso: enrollment None."""
-    if user.role in (UserRole.admin, UserRole.teacher):
+    """Student: matrícula activa. Teacher/org_admin del curso: enrollment None."""
+    if user.role in (UserRole.org_admin, UserRole.teacher):
         u, c = require_staff_of_course(db, user, course)
         return u, c, None
     enrollment = db.scalar(
@@ -193,7 +197,7 @@ def require_enrolled(
 
 def can_read_submission(db: Session, user: User, submission: Submission) -> bool:
     """Matriz: dueño, staff del curso, o peer con visibility=class (sin evals)."""
-    if user.role is UserRole.admin:
+    if user.role is UserRole.org_admin:
         return True
     if submission.student_id == user.id:
         return True
@@ -218,7 +222,8 @@ def can_read_submission(db: Session, user: User, submission: Submission) -> bool
         if submission.assignment is None:
             return False
         return submission.assignment.visibility.value == "class"
-    raise AssertionError("unreachable: closed UserRole set")
+    # super_admin: sin lectura de datos académicos (compromiso de producto)
+    return False
 
 
 def can_write_submission(user: User, submission: Submission) -> bool:

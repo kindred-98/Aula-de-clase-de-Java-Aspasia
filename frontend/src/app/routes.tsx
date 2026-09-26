@@ -59,19 +59,21 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function RequireAdmin({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  if (user && user.role !== "admin") return <Navigate to="/" replace />;
+  if (user && user.role !== "org_admin") return <Navigate to="/" replace />;
   return children;
 }
 
 function RequireTeacher({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  if (user && user.role !== "teacher" && user.role !== "admin") return <Navigate to="/" replace />;
+  if (user && user.role !== "teacher" && user.role !== "org_admin")
+    return <Navigate to="/" replace />;
   return children;
 }
 
 function RequireStudent({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  if (user && user.role !== "student" && user.role !== "admin") return <Navigate to="/" replace />;
+  if (user && user.role !== "student" && user.role !== "org_admin")
+    return <Navigate to="/" replace />;
   return children;
 }
 
@@ -84,7 +86,7 @@ function RequireStaff({ children }: { children: ReactNode }) {
 function RequirePermission({ permission, children }: { permission: string; children: ReactNode }) {
   const { user } = useAuth();
   const permissions = usePermissions();
-  if (user && user.role === "admin") return children;
+  if (user && user.role === "org_admin") return children;
   if (permissions.isPending) return <Spinner label="Comprobando permisos…" />;
   const effective = permissions.data?.effective ?? [];
   if (permissions.isError || !effective.includes(permission)) return <Navigate to="/" replace />;

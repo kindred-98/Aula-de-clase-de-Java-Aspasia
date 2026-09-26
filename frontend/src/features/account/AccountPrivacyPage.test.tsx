@@ -34,9 +34,9 @@ function json(body: unknown, status = 200): Response {
 function authBody(role: string) {
   return {
     id: 1,
-    name: role === "admin" ? "Admin" : "Ana",
-    email: role === "admin" ? "a@x.test" : null,
-    username: role === "admin" ? null : "ana1",
+    name: role === "org_admin" ? "Admin" : "Ana",
+    email: role === "org_admin" ? "a@x.test" : null,
+    username: role === "org_admin" ? null : "ana1",
     role,
     is_active: true,
     must_change_credentials: false,
@@ -83,7 +83,7 @@ describe("AccountPrivacyPage", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn((url: string) => {
-        if (url.includes("/auth/me")) return Promise.resolve(json(authBody("admin")));
+        if (url.includes("/auth/me")) return Promise.resolve(json(authBody("org_admin")));
         return Promise.resolve(json([]));
       }),
     );

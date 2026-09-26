@@ -29,8 +29,8 @@ function json(body: unknown): Response {
   });
 }
 
-function authAs(role: "teacher" | "student" | "admin", pending = 2) {
-  const name = role === "teacher" ? "Profe" : role === "admin" ? "Admin" : "Ana";
+function authAs(role: "teacher" | "student" | "org_admin", pending = 2) {
+  const name = role === "teacher" ? "Profe" : role === "org_admin" ? "Admin" : "Ana";
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string) => {
@@ -138,7 +138,7 @@ describe("Fase S0 — estructura del panel del alumno", () => {
   });
 
   it("un admin supera el guard", async () => {
-    authAs("admin");
+    authAs("org_admin");
     renderRoutes(["/student"]);
 
     expect(await screen.findByRole("heading", { name: /panel del alumno/i })).toBeInTheDocument();
@@ -511,7 +511,7 @@ describe("homePathAfterLogin (D-S2)", () => {
 
   it("redirige a / cuando no hay token o el rol no tiene panel", () => {
     expect(homePathAfterLogin()).toBe("/");
-    localStorage.setItem("aula.access_token", tokenWithRole("admin"));
+    localStorage.setItem("aula.access_token", tokenWithRole("org_admin"));
     expect(homePathAfterLogin()).toBe("/");
   });
 });

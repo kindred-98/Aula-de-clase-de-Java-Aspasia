@@ -25,6 +25,7 @@ from app.models import (
     User,
     UserRole,
 )
+from app.services.organization import get_or_create_default_organization
 
 STUDENTS = [
     ("student01", "Alice"),
@@ -70,12 +71,14 @@ def seed_demo(db: Session | None = None) -> dict[str, Any]:
         if existing is not None:
             return {"status": "exists", "course_id": existing.id}
 
+        organization_id = get_or_create_default_organization(session).id
         teacher = session.scalar(select(User).where(User.email == "profe@demo.test"))
         if teacher is None:
             teacher = User(
                 name="Profesora Demo",
                 email="profe@demo.test",
                 role=UserRole.teacher,
+                organization_id=organization_id,
                 password_hash=hash_secret("profe-demo-pass"),
                 is_active=True,
                 must_change_credentials=False,
@@ -90,6 +93,7 @@ def seed_demo(db: Session | None = None) -> dict[str, Any]:
             status=CourseStatus.active,
             layout_rows=3,
             layout_cols=5,
+            organization_id=organization_id,
             settings={"peer_visibility_default": "class"},
         )
         session.add(course)
@@ -112,6 +116,7 @@ def seed_demo(db: Session | None = None) -> dict[str, Any]:
                 name=name,
                 username=username,
                 role=UserRole.student,
+                organization_id=organization_id,
                 pin_hash=hash_secret(pin),
                 is_active=True,
                 must_change_credentials=False,

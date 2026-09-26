@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 
 export function usePendingCount() {
   const { isAuthenticated, mustChange, user } = useAuth();
-  const isStaff = user?.role === "teacher" || user?.role === "admin";
+  const isStaff = user?.role === "teacher" || user?.role === "org_admin";
   return useQuery({
     queryKey: ["teacher-pending-count"],
     queryFn: ({ signal }) => apiGet<PendingCount>("/teacher/pending-count", signal),

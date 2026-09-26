@@ -22,7 +22,7 @@ function statusColor(status: string | null): string {
 
 export function ClassroomPage() {
   const { user } = useAuth();
-  const isStaff = user?.role === "teacher" || user?.role === "admin";
+  const isStaff = user?.role === "teacher" || user?.role === "org_admin";
   const courseId = useParams().courseId ?? "";
   const room = useQuery({
     queryKey: ["classroom", courseId],

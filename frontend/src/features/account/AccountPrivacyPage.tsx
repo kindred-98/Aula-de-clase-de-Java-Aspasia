@@ -10,7 +10,7 @@ import { useAuth } from "../auth/AuthContext";
 export function AccountPrivacyPage() {
   const { logout, user } = useAuth();
   const [confirmErase, setConfirmErase] = useState(false);
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "org_admin";
 
   const courses = useQuery({
     queryKey: ["courses"],

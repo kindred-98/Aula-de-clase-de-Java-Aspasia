@@ -15,7 +15,7 @@ const inputClass =
 export function ContentPage() {
   const courseId = useParams().courseId ?? "";
   const { user } = useAuth();
-  const isStaff = user?.role === "admin" || user?.role === "teacher";
+  const isStaff = user?.role === "org_admin" || user?.role === "teacher";
   const queryClient = useQueryClient();
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
   const [showSectionForm, setShowSectionForm] = useState(false);

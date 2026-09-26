@@ -21,7 +21,7 @@ function dueLabel(due: string | null): string {
 export function AssignmentDetailPage() {
   const { courseId, assignmentId } = useParams();
   const { user } = useAuth();
-  const isStaff = user?.role === "admin" || user?.role === "teacher";
+  const isStaff = user?.role === "org_admin" || user?.role === "teacher";
   const queryClient = useQueryClient();
   const [now] = useState(() => Date.now());
   const [editing, setEditing] = useState(false);

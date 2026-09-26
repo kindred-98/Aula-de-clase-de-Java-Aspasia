@@ -6,7 +6,7 @@ import { useUnreadCount } from "../features/messages/useUnreadCount";
 export function AppLayout() {
   const { theme, toggle } = useTheme();
   const { isAuthenticated, mustChange, logout, user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "org_admin";
   const isTeacher = user?.role === "teacher";
   const isStudent = user?.role === "student";
   const unread = useUnreadCount();

@@ -30,7 +30,7 @@ router = APIRouter(tags=["course-chat"])
 
 def _assert_course_member(db: Session, user: User, course: Course) -> None:
     """404 si el usuario no es miembro (multi-tenant sin filtrar existencia)."""
-    if user.role is UserRole.admin:
+    if user.role is UserRole.org_admin:
         return
     if user.role is UserRole.teacher:
         link = db.scalar(
@@ -92,7 +92,7 @@ def _unread_for(db: Session, user_id: int, course_id: int) -> int:
 
 
 def _visible_course_ids(db: Session, user: User) -> list[int]:
-    if user.role is UserRole.admin:
+    if user.role is UserRole.org_admin:
         return list(db.scalars(select(Course.id)).all())
     if user.role is UserRole.teacher:
         rows = db.scalars(
