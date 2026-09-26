@@ -386,3 +386,165 @@ Prefijo: `/api/v1`. Errores: `{ "detail": str }` FastAPI estándar.
 Curso "Java" 3×5 asientos, 1 profesora, 15 estudiantes, secciones de ejemplo
 (HTML, CSS, Java, JS, Información externa). Comando: `make seed` /
 `python -m scripts.seed_demo`.
+
+---
+
+## 11. Fase A (Super-admin multi-tenant) — IMPLEMENTADA Y MERGEADA
+
+Registro de lo que ya existe en código (commit *"FASE A DE SUPER ADMIN"*).
+Origen: [Super-admin-prompt.md](../1-REVISION_DE_CODIGO_CLAUDE/Super-admin-prompt.md).
+**Esta sección no propone cambios: documenta la Fase A tal como está.**
+
+### 11.1 Modelo de datos añadido
+
+- **`models/organization.py`** (nuevo):
+  - `Organization`: `id`, `name str(200)`, `tax_id str(32)`,
+    `billing_email str(320)`, `status` (index), `plan_id str(64)`,
+    `stripe_customer_id str(64) UNIQUE NULL`,
+    `stripe_subscription_id str(64) UNIQUE NULL`, `trial_ends_at timestamptz NULL`,
+    `created_at`. Índices/únicos: `pk_organizations`,
+    `uq_organizations_stripe_customer_id`, `uq_organizations_stripe_subscription_id`,
+    `ix_organizations_status`.
+  - `OrgStatus` (StrEnum): `pending_payment | trialing | active | past_due | canceled`.
+    (`pending_payment`/`trialing`/`past_due`/`canceled` anticipan la Fase B-C de
+    facturación; en la Fase A solo se usa `active`.)
+- **`models/user.py`**:
+  - `UserRole` ahora es `super_admin | org_admin | teacher | student`
+    (el viejo `admin` desaparece; renombrado a `org_admin` en toda la API y FE).
+  - Campos nuevos: `organization_id FK→organizations NULL` (índice),
+    `activation_token_hash str(255) NULL` y
+    `activation_token_expires_at timestamptz NULL` (columnas preparadas para la
+    Fase B de activación por email; vacías en la Fase A).
+  - Dos CHECK en `__table_args__` (los nombres los prefija la naming convention):
+    - `ck_users_org_by_role`: `(role='super_admin' AND organization_id IS NULL)
+      OR (role<>'super_admin' AND organization_id IS NOT NULL)` — solo
+      `super_admin` carece de organización; todos los demás, obligatoria.
+    - `ck_users_role_valid`: `role IN ('super_admin','org_admin','teacher','student')`
+      — dominio cerrado de roles (SQLite no valida el tipo Enum a nivel BD, por
+      eso el CHECK es necesario).
+- **`models/course.py`**: `organization_id FK→organizations NOT NULL` + índice
+  (`ix_courses_organization_id`).
+
+### 11.2 Migración `e1a2b3c4d5f6` (revis. `d9a4b5c6e7f8`)
+
+Paso a paso de `upgrade()`:
+
+1. Crea la tabla `organizations` (+ 2 únicos de Stripe + `ix_organizations_status`).
+2. Añade a `users` las 3 columnas nuevas **sin FK todavía** (SQLite no permite
+   `ALTER ... ADD CONSTRAINT`; la FK entra en el batch del paso 5) +
+   `ix_users_organization_id`.
+3. Inserta la **organización por defecto** con SQL autocontenido:
+   `name='Organización por defecto'`, `tax_id='000000000A'`,
+   `billing_email = COALESCE(email del primer admin, 'admin@localhost')`,
+   `status='active'`, `plan_id=''`.
+4. **Backfill de roles y organización**:
+   `UPDATE users SET role='org_admin' WHERE role='admin'` y
+   `UPDATE users SET organization_id=<org> WHERE role<>'super_admin'`.
+5. FK + enum de 4 roles + los 2 CHECK, **con manejo distinto por dialecto**:
+   - **PostgreSQL**: `ALTER TYPE ... ADD VALUE` no puede ejecutarse dentro de una
+     transacción → `create_foreign_key`, `ALTER TYPE userrole RENAME TO
+     userrole_old`, crear el tipo nuevo con 4 valores, `ALTER COLUMN role TYPE
+     userrole USING (CASE WHEN role='admin' THEN 'org_admin' ELSE role END)`,
+     `DROP TYPE userrole_old` y crear los 2 CHECK con `create_check_constraint`.
+   - **SQLite**: `batch_alter_table('users')` (recrea la tabla con los datos ya
+     backfilleados): `alter_column role` al enum nuevo, `create_foreign_key` y
+     los 2 CHECK dentro del batch. (Los nombres de CHECK se pasan **sin** el
+     prefijo `ck_users_`: la naming convention de `Base.metadata` lo añade.)
+6. `courses.organization_id`: `add_column` nullable → backfill a la org por
+   defecto → `batch_alter_table` a `NOT NULL` + FK + `ix_courses_organization_id`.
+
+`downgrade()` inverso y también probado: borra los `super_admin` (el esquema
+monolítico antiguo no los admite), `org_admin → admin`, cae primero los 2 CHECK
+antes del backfill inverso (porque `admin` ya no pertenece al dominio), revierte
+el tipo `userrole` (misma bifurcación PG/SQLite), elimina las columnas y
+`organizations` al final. **Verificado: upgrade → downgrade → upgrade** sobre una
+copia de `dev.db` y sobre BD temporal; `dev.db` real está en `e1a2b3c4d5f6`
+(3 usuarios + curso Java en la org 1).
+
+### 11.3 CLI y helper
+
+- **`scripts/create_admin.py`**: argparse con `--role {org_admin|super_admin}`
+  (default `org_admin`), `--email`, `--password`, `--name`; fallback a las env
+  vars `AULA_ADMIN_EMAIL` / `AULA_ADMIN_PASSWORD`. `org_admin` hereda la
+  organización por defecto (se crea si no existe); `super_admin` nace con
+  `organization_id=NULL`. **Único camino para crear `super_admin`**; es
+  idempotente (si el email existe, no duplica).
+- **`services/organization.py`** (nuevo): `get_or_create_default_organization(db,
+  billing_email=None)` — devuelve la primera organización existente o crea la de
+  por defecto (billing: parámetro → primer email de staff → `admin@localhost`).
+  Lo usan el CLI, `seed_demo` y los tests.
+
+### 11.4 Cambios en `policies.py` y `admin.py` respecto a `super_admin`
+
+- **`security/policies.py`**:
+  - `require_admin` exige `org_admin` → **`super_admin` recibe 403 en `/api/v1/admin/*`**.
+  - `user_permissions`: `org_admin` → todos los permisos conocidos;
+    `super_admin` → `[]` (permisos académicos fuera de su alcance en esta fase).
+  - `can_read_submission`: `super_admin` cae a `return False` explícito
+    (antes habría un `AssertionError` por rama inalcanzable).
+  - `require_staff_of_course` / `require_enrolled`: `super_admin` no es
+    `org_admin`/`teacher` ⇒ denegado (403 / 404 según la invariante).
+- **`api/v1/routes/admin.py`**:
+  - `create_user`: 403 si `body.role == super_admin` (mensaje "solo CLI");
+    los usuarios creados heredan `organization_id = admin.organization_id`.
+  - `update_user`: 403 si se intenta promover a `super_admin`.
+  - `import_students_csv`: cada estudiante importado lleva
+    `organization_id = admin.organization_id`.
+  - (Coherente en el resto: `courses.create_course` usa la org del admin y
+    `phase3.clone_course` copia la del curso origen.)
+
+### 11.5 FUERA del alcance de la Fase A → condición de aceptación de la Fase C
+
+**Ningún endpoint de `admin.py` filtra todavía por `organization_id`.** Es
+intencional en la Fase A (el aislamiento por tenant completo es la Fase C), pero
+queda escrito aquí como **requisito obligatorio de la Fase C** en:
+
+- `list_users`, `update_user`, `reset_staff_password`, `set_user_status`,
+  `reset_pin`, `import_students_csv`, `list_audit_logs`, `course_metrics`
+  (además de `admin_dashboard` y las rutas de observador).
+- **Rutas de cursos** (`courses.py` y `phase3.py`): listado, detalle, métricas,
+  clonado, etc., tampoco recortan por `organization_id`.
+
+Es decir: hoy un `org_admin` de la org 1 podría listar usuarios/cursos de otra
+organización si existieran. En la Fase A solo existe la org por defecto, así que
+no hay fuga real, pero **la Fase C debe añadir ese filtrado y sus tests de
+aislamiento**.
+
+### 11.6 Tests (`tests/test_saas_phase_a.py`, 8) y prueba de mutación
+
+- `test_migration_backfill_and_downgrade` — crea una BD temporal en el esquema
+  antiguo (`d9a4b5c6e7f8`), inserta datos crudos (admin/teacher/student/curso),
+  migra a `head` y verifica org por defecto, `admin→org_admin`,
+  `organization_id` backfilleado y los CHECK/FK en el DDL; después ejecuta el
+  `downgrade` y verifica el esquema monolítico restaurado.
+- `test_check_constraint_rejects_invalid_role_org_pairs` — `super_admin` con org
+  ⇒ `IntegrityError`; `org_admin` sin org ⇒ `IntegrityError`; rol legacy `admin`
+  ⇒ `IntegrityError`.
+- `test_cli_create_org_admin_and_super_admin` — CLI con `SessionLocal`
+  parcheado a BD temporal: `org_admin` con org, `super_admin` sin org,
+  idempotencia y `billing_email` heredado.
+- `test_get_or_create_default_organization_is_idempotent`.
+- `test_super_admin_blocked_from_admin_api` — 403 en `/admin/dashboard` y
+  `/admin/users`.
+- `test_super_admin_cannot_be_created_or_promoted_via_api` — 403 en
+  `POST /admin/users` y en `PATCH ... {"role": "super_admin"}`.
+- `test_super_admin_has_no_academic_permissions` — `user_permissions → []`,
+  `can_read_submission → False` (frente a `True` para el teacher).
+- `test_created_users_inherit_admin_organization` — usuario y curso creados por
+  un admin heredan su `organization_id`.
+
+**Prueba de mutación realizada** (sabotaje → test en rojo → revertido):
+
+1. Neutralizado el backfill de roles del paso 4 de la migración → la migración
+   falla con `CHECK constraint failed: ck_users_role_valid` (el nuevo dominio de
+   roles detecta el backfill roto).
+2. Comentado el CHECK `org_by_role` del modelo → el test de constraints falla
+   con `DID NOT RAISE IntegrityError`.
+
+Ambos sabotajes detectados por la suite y revertidos.
+
+**Gates de la fase**: backend `ruff + format + mypy + pytest --cov` →
+**133 tests, 86,71 %**; frontend `lint + format + typecheck + test + build` →
+**66 tests** (literales de rol `admin → org_admin` en guards, formularios, mocks
+y `roleLabel`; `lib/api.ts` con `super_admin` en la unión de roles, sin rutas
+nuevas).
