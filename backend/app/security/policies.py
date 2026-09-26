@@ -31,12 +31,14 @@ __all__ = [
     "CurrentUser",
     "DbSession",
     "current_user_from_token",
+    "ensure_same_org",
     "get_bearer_token",
     "get_course_or_404",
     "require_admin",
     "require_enrolled",
     "require_permission",
     "require_staff_of_course",
+    "require_super_admin",
     "require_teacher_of_course",
     "user_permissions",
 ]
@@ -101,6 +103,26 @@ def require_admin(user: Annotated[User, Depends(CurrentUser)]) -> User:
     return user
 
 
+def require_super_admin(user: Annotated[User, Depends(CurrentUser)]) -> User:
+    """Solo la cuenta dueña de la plataforma (rutas /superadmin/*)."""
+    if user.role is not UserRole.super_admin:
+        raise HTTPException(status_code=403, detail="Super admin access required")
+    return user
+
+
+def ensure_same_org(user: User, resource_org_id: int | None, detail: str = "Not found") -> None:
+    """404 si el recurso pertenece a otra organización (nunca 403: no filtrar existencia ajena)."""
+    if user.organization_id is None:
+        return  # super_admin no llega por aquí; lo bloquean los deps de rol
+    if resource_org_id != user.organization_id:
+        raise HTTPException(status_code=404, detail=detail)
+
+
+def _ensure_course_org(user: User, course: Course) -> None:
+    """Aislamiento multi-tenant: curso de otra organización → 404."""
+    ensure_same_org(user, course.organization_id, detail="Course not found")
+
+
 def user_permissions(user: User) -> list[str]:
     """Permisos efectivos: org_admin → todos; resto → su rol personalizado.
 
@@ -130,12 +152,15 @@ def require_permission(perm: str) -> Callable[[Annotated[User, Depends(CurrentUs
 
 def get_course_or_404(
     db: DbSession,
+    user: Annotated[User, Depends(CurrentUser)],
     course_id: Annotated[int, Path(..., ge=1)],
 ) -> Course:
     course = db.get(Course, course_id)
     if course is None:
         # 404 en vez de 403 para no filtrar existencia ajenas (invariante 3/4)
         raise HTTPException(status_code=404, detail="Course not found")
+    # Aislamiento multi-tenant: curso de otra organización → 404 (Fase C)
+    _ensure_course_org(user, course)
     return course
 
 
@@ -147,7 +172,8 @@ def require_staff_of_course(
     user: Annotated[User, Depends(CurrentUser)],
     course: CurrentCourse,
 ) -> tuple[User, Course]:
-    """Org_admin siempre; teacher solo si es de `course_teachers`."""
+    """Org_admin siempre (de SU organización); teacher solo si es de `course_teachers`."""
+    _ensure_course_org(user, course)
     if user.role is UserRole.org_admin:
         return user, course
     if user.role is UserRole.teacher:
@@ -180,6 +206,7 @@ def require_enrolled(
     course: CurrentCourse,
 ) -> tuple[User, Course, Enrollment | None]:
     """Student: matrícula activa. Teacher/org_admin del curso: enrollment None."""
+    _ensure_course_org(user, course)
     if user.role in (UserRole.org_admin, UserRole.teacher):
         u, c = require_staff_of_course(db, user, course)
         return u, c, None
@@ -198,6 +225,11 @@ def require_enrolled(
 def can_read_submission(db: Session, user: User, submission: Submission) -> bool:
     """Matriz: dueño, staff del curso, o peer con visibility=class (sin evals)."""
     if user.role is UserRole.org_admin:
+        # Solo entregas de cursos de SU organización (Fase C: 404/False nunca 403)
+        course = db.get(Course, submission.course_id)
+        if course is None:
+            return False
+        ensure_same_org(user, course.organization_id, detail="Submission not found")
         return True
     if submission.student_id == user.id:
         return True

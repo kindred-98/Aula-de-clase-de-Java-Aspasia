@@ -694,3 +694,245 @@ Fase C; frontend y 2FA TOTP → Fase D.
 **Siguiente: Fase C** (aislamiento por `organization_id` + rutas
 `/superadmin/*`) — condición no negociable descrita en 11.5, con sus tests
 de aislamiento cruzado y su propia prueba de mutación.
+
+---
+
+## 13. Fase C (aislamiento multi-tenant de todas las rutas + `/superadmin/*`) — PLAN
+
+**Estado: PLAN, sin implementar.** Origen: secciones 6 (invariantes), 7 (rutas),
+8 (tests) y 9 (definición de Fase C) de
+[Super-admin-prompt.md](../1-REVISION_DE_CODIGO_CLAUDE/Super-admin-prompt.md) +
+condición no negociable de 11.5. **No se escribe código hasta que este plan se
+confirme.** Frontend y 2FA TOTP de super_admin → Fase D.
+
+### 13.1 Alcance
+
+1. **Invariante central**: toda query de `org_admin` filtra por
+   `organization_id == user.organization_id`; un recurso de otra organización
+   responde **404, nunca 403** (no se revela su existencia). `super_admin`
+   sigue sin ver datos académicos (Fase A) y tendrá sus rutas propias.
+2. **Choke points nuevos en `app/security/policies.py`** (cubren casi todas las
+   rutas desde un solo sitio):
+   - `_ensure_course_org(user, course)` → 404 si
+     `course.organization_id != user.organization_id`. Se llama **dentro** de
+     `get_course_or_404`, `require_staff_of_course` y `require_enrolled` —
+     estas dos se invocan también como llamada directa con `_get_course`
+     locales (`courses.py`, `announcements.py`, `sections.py`, `work.py`), así
+     que el check va en la función, no solo en la dependencia `Depends`.
+     Super_admin (`organization_id IS NULL`) no entra por aquí: los deps de
+     staff/teacher ya lo bloquean como hoy.
+   - `ensure_same_org(user, resource_org_id, detail)` → 404: para todos los
+     `db.get(User|CourseCategory|Cohort|CustomRole)` con id de path.
+   - `can_read_submission`: la rama `org_admin` pasa a exigir que la entrega
+     pertenezca a un curso de su organización (cubre `GET /submissions/{id}`
+     y `GET /submissions/{id}/github-meta`).
+   - `require_super_admin(user)`: solo `UserRole.super_admin` (org_admin y
+     demás → 403).
+   - Guards inline se auditan y refuerzan con lo anterior:
+     `course_chat._assert_course_member`, los checks de `messages.py` y
+     `calendar_inst.py`, y los `_get_course` locales de `admin.py`
+     (`import-students`, `metrics`).
+3. **Inventario completo de endpoints a re-acotar (los 5 ficheros admin, 65
+   endpoints; se listan también los que NO cambian)**:
+
+#### `routes/admin.py` (12)
+
+| Ruta | Scoping |
+|---|---|
+| `GET /admin/users` | `where(User.organization_id == admin.organization_id)` |
+| `POST /admin/users` | sin cambio (ya hereda `organization_id=admin.organization_id`) |
+| `PATCH /admin/users/{user_id}` | `ensure_same_org` → 404 |
+| `POST /admin/users/{user_id}/reset-password` | `ensure_same_org` → 404 |
+| `PATCH /admin/users/{user_id}/status` | `ensure_same_org` → 404 |
+| `POST /admin/users/{user_id}/reset-pin` | `ensure_same_org` → 404 |
+| `POST /admin/courses/{course_id}/import-students` | org del curso → 404 (check manual, hoy `db.get` a secas) |
+| `GET /admin/audit-logs` | JOIN: solo logs cuyo `actor` es usuario de la org (sin columna nueva) |
+| `GET /admin/metrics/course/{course_id}` | org del curso → 404 |
+| `GET /admin/dashboard` | todos los KPIs + `recent_audit` + `recent_submissions` filtrados por org (JOIN por actor/curso) |
+| `GET /admin/observer/submissions` | `Submission.course_id` ∈ cursos de la org |
+| `GET /admin/observer/evaluations` | idem vía `Submission → Course` |
+
+#### `routes/courses.py` (17)
+
+| Ruta | Scoping |
+|---|---|
+| `GET /courses` | rama org_admin: `where(Course.organization_id == user.organization_id)` |
+| `POST /courses` | ya hereda org; `Course.code` pasa a único **por org** (13.3) |
+| `GET /courses/{course_id}` | choke (course org → 404) |
+| `PATCH /courses/{course_id}` | choke |
+| `GET /courses/{course_id}/classroom` | choke |
+| `GET /courses/{course_id}/seats` | choke |
+| `GET /courses/{course_id}/enrollments` | choke |
+| `POST /courses/{course_id}/enrollments` | choke + `ensure_same_org(student)` |
+| `PATCH /courses/{course_id}/enrollments/{enrollment_id}/seat` | choke |
+| `GET /courses/{course_id}/enrollments/me` | sin cambio (consulta por `user.id`) |
+| `DELETE /courses/{course_id}/enrollments/{enrollment_id}` | choke |
+| `POST /courses/{course_id}/teachers/{teacher_id}` | choke + `ensure_same_org(teacher)` |
+| `DELETE /courses/{course_id}/teachers/{teacher_id}` | choke |
+| `GET /me/courses` | hereda de `list_courses` (la rama org_admin queda scoping) |
+| `GET /courses/{course_id}/overview` | choke |
+| `GET /courses/{course_id}/students/{student_id}` | choke (el student ya se valida por matrícula del curso) |
+| `GET /courses/{course_id}/my-progress` | sin cambio (personal; la rama org_admin queda cubierta por el choke en `require_enrolled`) |
+
+#### `routes/phase3.py` (6)
+
+| Ruta | Scoping |
+|---|---|
+| `POST /courses/{course_id}/clone` | choke + el clon pasa a `organization_id=admin.organization_id` (hoy se queda en la del origen) |
+| `GET /courses/{course_id}/export/grades.csv` | choke |
+| `GET /submissions/{submission_id}/github-meta` | vía `can_read_submission` con org |
+| `GET /me/export` | sin cambio (personal) |
+| `DELETE /me/data` | sin cambio (personal) |
+| `DELETE /admin/users/{user_id}/data` | `ensure_same_org` → 404 (hoy anonimiza usuarios ajenos) |
+
+#### `routes/phase_c.py` (7)
+
+| Ruta | Scoping |
+|---|---|
+| `GET /admin/dashboard/multi` | `where(Course.organization_id == …)` |
+| `GET /courses/{course_id}/gradebook` | choke |
+| `GET /admin/settings` | fila por `(key, organization_id)` (13.3) |
+| `PUT /admin/settings` | idem (hoy una org pisa la fila global de todas) |
+| `GET /admin/reports/overview` (+ `.csv`) | filtro por org dentro del helper compartido |
+| `GET /courses/{course_id}/backup` | `ensure_same_org(course)` → 404 (usa `require_admin` a secas) |
+
+#### `routes/phase_d.py` (22)
+
+| Ruta | Scoping |
+|---|---|
+| `GET /categories` | `where(org)` + `course_count` solo de la org |
+| `POST /admin/categories` | `organization_id=admin.organization_id`; slug único **por org** |
+| `PATCH`/`DELETE /admin/categories/{category_id}` | `ensure_same_org(category)` → 404 |
+| `PATCH /admin/courses/{course_id}/taxonomy` | choke + category/cohort de la misma org → 404 |
+| `GET`/`POST /admin/cohorts` | org; `code` único **por org** |
+| `GET`/`DELETE /admin/cohorts/{cohort_id}` | `ensure_same_org(cohort)` → 404 |
+| `POST /admin/cohorts/{cohort_id}/members` | `ensure_same_org(cohort)` + `ensure_same_org(student)` |
+| `DELETE /admin/cohorts/{cohort_id}/members/{student_id}` | idem |
+| `POST /courses/{course_id}/auto-enroll` | choke + cohort de la misma org del curso |
+| `GET /admin/permissions` | sin cambio (catálogo estático, sin BD) |
+| `GET /auth/permissions` | sin cambio (personal) |
+| `GET`/`POST /admin/roles` | org; name único **por org**; `assigned_count` solo de la org |
+| `PATCH`/`DELETE /admin/roles/{role_id}` | `ensure_same_org(role)` → 404 |
+| `POST /admin/users/{user_id}/custom-role` | `ensure_same_org(user)` + `ensure_same_org(role)` |
+| `GET /admin/sessions` | JOIN `User.organization_id == admin.organization_id` |
+| `POST /admin/sessions/revoke` | `ensure_same_org(user)` |
+| `POST /admin/users/{user_id}/unlock` | `ensure_same_org(user)` |
+
+Ficheros no listados (`announcements`, `sections`, `work`, `rubrics`,
+`attendance`, `calendar`, `student`, `teacher`): heredan la protección de los
+choke points de `policies.py`; solo se auditan sus llamadas directas.
+
+4. **Rutas nuevas `/api/v1/superadmin/*`** — `routes/superadmin.py` +
+   `schemas/superadmin.py` (hoy **no existe** ningún schema de salida de
+   `Organization`), con `require_super_admin`:
+
+   | Método y ruta | Qué hace | Errores |
+   |---|---|---|
+   | `GET /superadmin/organizations` | Lista orgs con `status`, `plan_id`, ids de Stripe, `trial_ends_at` + contadores de usuarios/cursos; filtros `status`/`q` | — |
+   | `GET /superadmin/organizations/{org_id}` | Detalle de una org | 404 |
+   | `POST /superadmin/organizations` | Alta manual (enterprise, sin Checkout) con `status` en el payload (default `active`) | 201 / 409 email duplicado |
+   | `PATCH /superadmin/organizations/{org_id}` | `name`/`tax_id`/`billing_email`/`plan_id`/`status` (el dueño de la plataforma gestiona estados a mano) | 404 |
+   | `DELETE /superadmin/organizations/{org_id}` | Solo si la org **no tiene usuarios ni cursos** (org vacía); protegida frente a borrados masivos | 204 / 409 con detalle |
+   | `GET /superadmin/subscriptions` | Filas de suscripción: customer/subscription de Stripe, estado, plan, trial | — |
+   | `GET /superadmin/metrics` | Agregados **sin datos académicos**: orgs por estado y plan, usuarios por rol, total de cursos, trials que terminan en ≤7 días | — |
+
+   `super_admin` **no** recibe endpoints de AuditLog ni de
+   Submission/Evaluation/CourseMessage (compromiso de producto). Org_admin →
+   403 en todas las rutas `/superadmin/*` (y super_admin sigue recibiendo 403
+   en `/admin/*`, ya cubierto por tests de Fase A/B).
+
+### 13.2 Fuera de alcance de la Fase C
+
+- Frontend (`/precios`, `/registro-empresa`, `/activar-cuenta/:token`,
+  rutas por rol, panel de super_admin) y **2FA TOTP** → **Fase D**.
+- Datos académicos para super_admin, reset de contraseñas de org_admin desde
+  `/superadmin`, exportaciones masivas → fuera del alcance pedido.
+- La Fase A y la Fase B **no se tocan** (migraciones `e1a2b3c4d5f6` y
+  `f4e5d6c7b8a9` quedan como están; la de la Fase C se apila encima).
+
+### 13.3 Modelo, migración y configuración
+
+- **Migración nueva** (revisión tras `f4e5d6c7b8a9`, con downgrade):
+  - Columna `organization_id` (FK → `organizations`, backfill a la
+    organización por defecto, después NOT NULL) en **4 tablas hoy globales**:
+    `course_categories`, `cohorts`, `custom_roles`, `system_settings`.
+    `batch_alter_table` en SQLite + rama PostgreSQL, como las migraciones
+    anteriores.
+  - `system_settings`: la PK pasa de `key` a `(key, organization_id)`
+    (ajustes del centro **por** organización).
+  - Unicidades globales → compuestas: `slug` de categorías, `code` de
+    cohorts, `name` de roles y `courses.code` pasan a ser únicos **dentro de
+    una organización** (hoy un código de curso repetido en otra org daba 409
+    y revelaba su existencia). Mismo-org sigue dando 409 (los tests
+    existentes se mantienen en verde).
+  - `audit_logs`: **sin columna nueva** — el filtro de `GET /admin/audit-logs`
+    es un JOIN por el `actor` de la organización (todo log de org tiene actor
+    de esa org).
+  - Nota: el esquema de los tests se crea con `Base.metadata.create_all`, así
+    que las 4 tablas llevan un default de seguridad en el modelo para las
+    inserciones directas que ya hacen los tests (org id 1 = org por defecto);
+    verificar que los tests existentes de settings/categories/cohorts/roles
+    siguen en verde.
+- **Schemas nuevos**: `app/schemas/superadmin.py` (`OrganizationAdminPublic`,
+  `OrganizationCreate/Update`, `SubscriptionRow`, `PlatformMetrics`).
+- **Config**: sin secretos ni env vars nuevos (Fase C no toca `.env`).
+
+### 13.4 Tests de la fase (`tests/test_saas_phase_c.py`) y prueba de mutación
+
+Aislamiento con **dos organizaciones** — la prueba principal crea las dos orgs
+**mediante el flujo real de la Fase B** (registro público + webhook firmado +
+activación de las dos cuentas `org_admin`); el resto de tests usa el patrón de
+orgs creadas directamente en `db` (barato):
+
+1. `test_cross_org_isolation_via_real_registration_flow` — matriz amplia: el
+   org_admin A no lista ni lee usuarios/cursos de B (404/ausencia) con las dos
+   orgs nacidas del flujo real.
+2. `test_org_admin_users_list_scoped_to_own_org` — `GET /admin/users`.
+3. `test_org_admin_cannot_modify_user_of_other_org` — PATCH user, status,
+   reset-password, reset-pin, unlock, custom-role, DELETE data → 404.
+4. `test_org_admin_audit_logs_scoped_to_own_org`.
+5. `test_org_admin_dashboard_observer_and_reports_scoped` — KPIs distintos
+   por org; observer sin entregas ajenas.
+6. `test_org_admin_cannot_touch_other_org_courses` — GET/PATCH, clone,
+   backup, gradebook, metrics, import-students, taxonomy, auto-enroll,
+   enrollments, teachers → 404; `GET /courses` sin cursos ajenos.
+7. `test_course_code_and_catalogs_unique_per_org` — mismo `code`/`slug`/
+   `name` en dos orgs → 201 en ambos; repetido en la misma org → 409.
+8. `test_cross_org_student_and_teacher_assignment_blocked` — matricular alumno
+   de B en curso de A, añadir profesor de B, miembros de cohort → 404.
+9. `test_settings_isolated_between_orgs` — PUT en A no cambia el GET de B.
+10. `test_sessions_list_revoke_scoped` — solo sesiones/usuarios propios.
+11. `test_org_admin_cannot_read_academic_content_of_other_org` —
+    `GET /submissions/{id}`, `github-meta` y `POST /courses/{id}/chat` de otra
+    org → 404.
+12. `test_super_admin_organization_crud` — crear/listar/patch/borrar org
+    vacía; borrar org con usuarios → 409; id inexistente → 404.
+13. `test_super_admin_subscriptions_and_metrics_no_academic_data` — métricas
+    correctas y **sin claves** de submissions/evaluations/messages (assert
+    explícito de claves prohibidas).
+14. `test_super_admin_role_boundaries` — org_admin → 403 en todos los
+    `/superadmin/*` (parametrizado); super_admin → 403 en `/admin/*`.
+
+- **Prueba de mutación (2 sabotajes, evidencia pegada aquí al implementar)**:
+  a) quitar el `where(User.organization_id == …)` de `GET /admin/users` →
+  el test 2 **debe fallar**; b) quitar el `_ensure_course_org` de
+  `require_staff_of_course` → los tests 6/11 **deben fallar**. Si al sabotear
+  no falla ningún test, el test está mal escrito.
+- Riesgo conocido: los **149 tests existentes** deben seguir en verde (los
+  listados globales que asumían "un solo centro" pasan a estar filtrados por
+  la org por defecto, que es la única que usan).
+
+### 13.5 Entorno local
+
+- Sin cambios de entorno: solo aplicar la migración en local con
+  `ALEMBIC_DATABASE_URL="sqlite:///./dev.db" alembic upgrade head`.
+
+### 13.6 Gates para cerrar la Fase C
+
+- `ruff check .` + `ruff format --check .` + `mypy app` en verde.
+- `pytest --cov=app --cov-fail-under=80` (esperados ≈165 tests; mantener ≥80 %).
+- Migración aplicada a `dev.db` (`alembic current` → la revisión nueva).
+- Frontend sin cambios: `npm run lint` + `npm run test` en verde.
+- **Las 2 mutaciones en rojo y revertidas** con la evidencia pegada en 13.4.
+- Entrada nueva en `CHANGELOG.md`; este PLAN mostrado → **parar** antes de la
+  Fase D.
