@@ -56,12 +56,13 @@ def clone_course(
     source = db.get(Course, course_id)
     if source is None:
         raise HTTPException(status_code=404, detail="Course not found")
-    if db.scalar(select(Course).where(Course.code == body.code)):
+    code = body.code.strip().upper()
+    if db.scalar(select(Course).where(Course.code == code)):
         raise HTTPException(status_code=409, detail="Course code already exists")
 
     clone = Course(
         name=body.name,
-        code=body.code,
+        code=code,
         description=source.description,
         status=CourseStatus.active,
         layout_rows=source.layout_rows,

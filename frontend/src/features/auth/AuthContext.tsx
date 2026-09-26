@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginStudent = useCallback(
     async (input: { course_code: string; identifier: string; pin: string }) => {
       const tokens = await apiSend<TokenPayload>("POST", "/auth/login/student", input);
-      setSession(tokens);
+      setSession(tokens, "student");
       setState({ isAuthenticated: true, mustChange: tokens.must_change_credentials });
       return tokens;
     },
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginStaff = useCallback(async (input: { email: string; password: string }) => {
     const tokens = await apiSend<TokenPayload>("POST", "/auth/login/staff", input);
-    setSession(tokens);
+    setSession(tokens, "staff");
     setState({ isAuthenticated: true, mustChange: tokens.must_change_credentials });
     return tokens;
   }, []);

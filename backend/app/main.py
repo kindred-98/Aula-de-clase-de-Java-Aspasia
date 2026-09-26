@@ -10,6 +10,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app import __version__
 from app.api.v1.router import api_router
+from app.api.v1.routes import health
 from app.core.config import settings
 from app.core.logging import setup_logging
 
@@ -43,7 +44,7 @@ def create_app() -> FastAPI:
     if settings.environment == "production":
         app.add_middleware(
             TrustedHostMiddleware,
-            allowed_hosts=["localhost", "127.0.0.1"],
+            allowed_hosts=settings.allowed_host_list,
         )
 
     @app.middleware("http")
@@ -60,7 +61,7 @@ def create_app() -> FastAPI:
         return response
 
     app.include_router(api_router, prefix=settings.api_prefix)
-    app.include_router(api_router)  # alias sin prefijo para health en raíz
+    app.include_router(health.router)  # alias en raíz: solo /health
     return app
 
 

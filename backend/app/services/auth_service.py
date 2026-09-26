@@ -128,16 +128,17 @@ def login_student(
         db.commit()
         raise AuthError("Too many attempts. Try again later.", status_code=429)
 
-    course = db.scalar(select(Course).where(Course.code == course_code))
+    course = db.scalar(select(Course).where(Course.code == course_code.strip().upper()))
     if course is None or course.status is not CourseStatus.active:
         record_failed_login(db, identifier=identifier, ip=ip, reason="unknown_course")
         db.commit()
         raise AuthError("Invalid credentials")
 
+    # Solo username: el nombre/es público en el mapa de asientos y no puede servir de login
     user = db.scalar(
         select(User).where(
             User.role == UserRole.student,
-            (User.username == identifier) | (User.email == identifier) | (User.name == identifier),
+            User.username == identifier,
         )
     )
     if user is None:

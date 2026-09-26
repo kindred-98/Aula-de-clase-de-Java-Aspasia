@@ -1,4 +1,12 @@
-# ROL Y OBJETIVO
+# Prompt — Super Admin (SaaS multi-tenant)
+
+Aquí tienes el prompt completo para OpenCode, con la falla del webhook (y las demás que hemos ido viendo en este diseño) puestas como requisitos explícitos, no como notas al margen.
+
+**Documentación relacionada**: análisis previo [PLAN_SUPER_ADMIN.md](../PLAN/PLAN_SUPER_ADMIN.md) · arquitectura actual [PLAN_CLAUDE.md](../PLAN/PLAN_CLAUDE.md) · [Índice de docs](../Explicacion_de_Cada_ARCHIVO.md) · [CHANGELOG.md](../../CHANGELOG.md).
+
+---
+
+## 1. ROL Y OBJETIVO
 
 Actúa como ingeniero senior full stack. Vas a extender el proyecto existente en
 github.com/kindred-98/Aula-de-clase-de-Java (backend FastAPI + frontend React) para
@@ -76,7 +84,9 @@ el `admin` actual a `org_admin` de esa organización, y crear un único
 `super_admin` nuevo por CLI (extiende el comando `create-admin` que ya existe
 con un flag `--role super_admin`, o un comando `create-super-admin` aparte).
 
-# FLUJO DE ALTA DE ORGANIZACIÓN (orden estricto, no lo invirtáis)
+---
+
+## 4. FLUJO DE ALTA DE ORGANIZACIÓN (orden estricto, no lo invirtáis)
 
 1. Formulario público "Registra tu empresa" (nombre, NIF/CIF, email de contacto,
    plan elegido). NO crea `User` todavía. Guarda los datos en `Organization`
@@ -204,7 +214,9 @@ este rol en esta fase; no hace falta para los demás todavía.
   filtro `organization_id` en una query de `org_admin` y confirma que algún test
   falla. Si no falla ninguno, el test está mal escrito, no el código.
 
-# FASES
+---
+
+## 9. FASES
 
 - Fase A: modelo de datos (`Organization`, roles nuevos, migración de datos
   existentes), CLI para crear `super_admin`.

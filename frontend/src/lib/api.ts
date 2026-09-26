@@ -11,8 +11,10 @@ export class ApiError extends Error {
 }
 
 const ACCESS_KEY = "aula.access_token";
-const REFRESH_KEY = "aula.refresh_token";
 const MUST_CHANGE_KEY = "aula.must_change";
+const ROLE_KEY = "aula.role";
+
+export type SessionRole = "student" | "staff";
 
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_KEY);
@@ -22,20 +24,27 @@ export function mustChangeCredentials(): boolean {
   return localStorage.getItem(MUST_CHANGE_KEY) === "1";
 }
 
-export function setSession(tokens: {
-  access_token: string;
-  refresh_token: string;
-  must_change_credentials: boolean;
-}): void {
+export function getSessionRole(): SessionRole | null {
+  const role = localStorage.getItem(ROLE_KEY);
+  return role === "student" || role === "staff" ? role : null;
+}
+
+export function setSession(
+  tokens: {
+    access_token: string;
+    must_change_credentials: boolean;
+  },
+  role: SessionRole,
+): void {
   localStorage.setItem(ACCESS_KEY, tokens.access_token);
-  localStorage.setItem(REFRESH_KEY, tokens.refresh_token);
   localStorage.setItem(MUST_CHANGE_KEY, tokens.must_change_credentials ? "1" : "0");
+  localStorage.setItem(ROLE_KEY, role);
 }
 
 export function clearSession(): void {
   localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(MUST_CHANGE_KEY);
+  localStorage.removeItem(ROLE_KEY);
 }
 
 async function parseError(response: Response): Promise<string> {
@@ -110,7 +119,6 @@ export type HealthPayload = {
 export type TokenPayload = {
   access_token: string;
   token_type: string;
-  refresh_token: string;
   must_change_credentials: boolean;
 };
 

@@ -44,7 +44,7 @@ class User(Base):
     )
 
     custom_role: Mapped["CustomRole | None"] = relationship(lazy="joined")
-    enrollments: Mapped[list[Enrollment]] = relationship(
+    enrollments: Mapped[list["Enrollment"]] = relationship(
         back_populates="student",
         cascade="all, delete-orphan",
         lazy="selectin",

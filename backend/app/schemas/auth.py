@@ -26,9 +26,10 @@ class LoginStaffRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
+    """Login/refresh: el refresh token vive solo en la cookie httponly."""
+
     access_token: str
     token_type: str = Field(default="bearer")
-    refresh_token: str
     must_change_credentials: bool
 
 

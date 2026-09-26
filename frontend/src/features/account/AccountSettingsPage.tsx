@@ -159,6 +159,7 @@ export function ChangePasswordForm() {
 }
 
 export function AccountSettingsPage() {
+  const { user } = useAuth();
   return (
     <div className="mx-auto max-w-xl space-y-5">
       <header>
@@ -166,7 +167,8 @@ export function AccountSettingsPage() {
         <h1 className="text-2xl font-bold">Mi cuenta</h1>
       </header>
       <ProfileForm />
-      <ChangePasswordForm />
+      {/* El PIN de estudiante lo gestiona el admin/profesor: sin formulario de cambio */}
+      {user?.role !== "student" ? <ChangePasswordForm /> : null}
     </div>
   );
 }

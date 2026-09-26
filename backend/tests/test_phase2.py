@@ -273,13 +273,14 @@ def test_admin_reset_pin_shown_once(client: TestClient, db: Session) -> None:
     assert resp.status_code == 200, resp.text
     pin = resp.json()["pin"]
     assert len(pin) >= 6 and pin.isdigit()
-    assert resp.json()["must_change_credentials"] is True
+    # El PIN que genera el admin es directamente el definitivo para students
+    assert resp.json()["must_change_credentials"] is False
 
     db.expire_all()
     refreshed = db.get(User, student.id)
     assert refreshed is not None
     assert verify_secret(pin, refreshed.pin_hash)
-    assert refreshed.must_change_credentials is True
+    assert refreshed.must_change_credentials is False
 
     # no es estudiante → 404
     teacher = make_teacher(db, email="nostudent@example.com")

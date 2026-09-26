@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import { homePathAfterLogin } from "./homePath";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { getSessionRole } from "../../lib/api";
 
 export function ChangeCredentialsPage() {
   const { changeCredentials, logout } = useAuth();
@@ -34,6 +35,27 @@ export function ChangeCredentialsPage() {
 
   const inputClass =
     "w-full rounded-md border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-primary";
+
+  // Los estudiantes no cambian su PIN: lo gestiona el admin/profesor
+  if (getSessionRole() === "student") {
+    return (
+      <section className="mx-auto max-w-md space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold">Tu PIN lo gestiona tu profesor</h1>
+          <p className="mt-1 text-sm text-muted">
+            Tu PIN lo gestiona tu profesor. Si lo has olvidado, pídele que te lo restablezca.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => logout()}
+          className="rounded-md border border-border px-4 py-2 text-sm"
+        >
+          Salir
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto max-w-md space-y-4">

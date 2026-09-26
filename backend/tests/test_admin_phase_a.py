@@ -62,6 +62,8 @@ def test_admin_create_student_requires_username(client: TestClient, db: Session)
     )
     assert ok.status_code == 201
     assert ok.json()["temporary_secret"] and len(ok.json()["temporary_secret"]) == 6
+    # El PIN temporal ya es el definitivo: students no tienen cambio forzado
+    assert ok.json()["must_change_credentials"] is False
 
 
 def test_staff_password_reset(client: TestClient, db: Session) -> None:

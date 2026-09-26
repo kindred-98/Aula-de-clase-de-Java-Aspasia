@@ -115,11 +115,12 @@ def create_course(
     _admin: Annotated[User, Depends(require_admin)],
     request: Request,
 ) -> CoursePublic:
-    if db.scalar(select(Course).where(Course.code == body.code)):
+    code = body.code.strip().upper()
+    if db.scalar(select(Course).where(Course.code == code)):
         raise HTTPException(status_code=409, detail="Course code already exists")
     course = Course(
         name=body.name,
-        code=body.code,
+        code=code,
         description=body.description,
         layout_rows=body.layout_rows,
         layout_cols=body.layout_cols,

@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
+from app.models import UserRole
 from app.schemas.auth import (
     ChangeCredentialsRequest,
     LoginStaffRequest,
@@ -51,6 +52,16 @@ def _handle_auth_error(exc: AuthError) -> HTTPException:
     return HTTPException(status_code=exc.status_code, detail=exc.detail)
 
 
+def _token_response(tokens: dict[str, object], response: Response) -> TokenResponse:
+    """El refresh token viaja SOLO en la cookie httponly, nunca en el body."""
+    _set_refresh_cookie(response, str(tokens["refresh_token"]))
+    return TokenResponse(
+        access_token=str(tokens["access_token"]),
+        token_type=str(tokens["token_type"]),
+        must_change_credentials=bool(tokens["must_change_credentials"]),
+    )
+
+
 @router.post("/login/student", response_model=TokenResponse)
 def login_student(
     body: LoginStudentRequest,
@@ -69,9 +80,7 @@ def login_student(
         )
     except AuthError as exc:
         raise _handle_auth_error(exc) from exc
-    out = TokenResponse(**tokens)
-    _set_refresh_cookie(response, out.refresh_token)
-    return out
+    return _token_response(tokens, response)
 
 
 @router.post("/login/staff", response_model=TokenResponse)
@@ -88,9 +97,7 @@ def login_staff(
         )
     except AuthError as exc:
         raise _handle_auth_error(exc) from exc
-    out = TokenResponse(**tokens)
-    _set_refresh_cookie(response, out.refresh_token)
-    return out
+    return _token_response(tokens, response)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -107,9 +114,7 @@ def refresh(
         _user, tokens = auth_service.refresh_tokens(db, refresh_token=token)
     except AuthError as exc:
         raise _handle_auth_error(exc) from exc
-    out = TokenResponse(**tokens)
-    _set_refresh_cookie(response, out.refresh_token)
-    return out
+    return _token_response(tokens, response)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -175,6 +180,11 @@ def change_credentials(
     from app.models import User
 
     assert isinstance(user, User)
+    if user.role is UserRole.student:
+        raise HTTPException(
+            status_code=403,
+            detail="Students cannot change their own PIN; ask your teacher to reset it",
+        )
     ip = request.client.host if request.client else None
     try:
         updated = auth_service.change_credentials(

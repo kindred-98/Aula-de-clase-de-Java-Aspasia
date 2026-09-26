@@ -55,7 +55,11 @@ def test_no_csp_in_development() -> None:
 def test_csp_in_production(monkeypatch: pytest.MonkeyPatch) -> None:
     from app import main as main_module
 
-    monkeypatch.setattr(main_module, "settings", Settings(_env_file=None, environment="production"))
+    monkeypatch.setattr(
+        main_module,
+        "settings",
+        Settings(_env_file=None, environment="production", secret_key="p" * 40),
+    )
     prod_app = main_module.create_app()
     with TestClient(prod_app) as client:
         response = client.get("/health", headers={"Host": "localhost"})

@@ -95,7 +95,8 @@ def create_user(
         username=body.username,
         role=body.role,
         is_active=True,
-        must_change_credentials=True,
+        # El PIN/contraseña temporal que entrega el admin ya es el definitivo para students
+        must_change_credentials=body.role is not UserRole.student,
     )
     if body.role is UserRole.student:
         pin = body.pin or _generate_pin()
@@ -235,7 +236,8 @@ def reset_pin(
         raise HTTPException(status_code=404, detail="Student not found")
     pin = body.pin or _generate_pin()
     user.pin_hash = hash_secret(pin)
-    user.must_change_credentials = True
+    # El PIN que genera el admin es directamente el definitivo (students no cambian su PIN)
+    user.must_change_credentials = False
     log_action(
         db,
         action="pin.reset",
@@ -247,7 +249,7 @@ def reset_pin(
         ip=request.client.host if request.client else None,
     )
     db.commit()
-    return PinResetResponse(user_id=user.id, pin=pin, must_change_credentials=True)
+    return PinResetResponse(user_id=user.id, pin=pin, must_change_credentials=False)
 
 
 @router.post("/admin/courses/{course_id}/import-students", response_model=CsvImportResult)
@@ -300,7 +302,7 @@ def import_students_csv(
             role=UserRole.student,
             pin_hash=hash_secret(pin),
             is_active=True,
-            must_change_credentials=True,
+            must_change_credentials=False,
         )
         db.add(student)
         db.flush()

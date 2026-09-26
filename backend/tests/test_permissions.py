@@ -39,7 +39,8 @@ def _setup_two_students(db: Session) -> dict[str, Any]:
     return {"course": course, "teacher": teacher, "a": a, "b": b}
 
 
-def test_student_cannot_read_others_evaluations(client: TestClient, db: Session) -> None:
+def test_student_cannot_read_others_submission_detail(client: TestClient, db: Session) -> None:
+    """GET /submissions/{id} de un assignment privado: 404 estricto para un peer."""
     ctx = _setup_two_students(db)
     a: User = ctx["a"]
     b: User = ctx["b"]
@@ -61,12 +62,43 @@ def test_student_cannot_read_others_evaluations(client: TestClient, db: Session)
         course_id=course.id,
         student_id=a.id,
         status=SubmissionStatus.submitted,
+        notes="entrega privada de ana",
+    )
+    db.add(sub)
+    db.commit()
+
+    resp = client.get(f"/api/v1/submissions/{sub.id}", headers=auth_headers(b))
+    assert resp.status_code == 404
+
+
+def test_student_cannot_read_evaluations_of_others(client: TestClient, db: Session) -> None:
+    """Cuando SÍ puede ver la entrega (visibility=class), jamás ve evaluaciones ajenas."""
+    ctx = _setup_two_students(db)
+    a: User = ctx["a"]
+    b: User = ctx["b"]
+    teacher: User = ctx["teacher"]
+    course = ctx["course"]
+
+    assignment = Assignment(
+        course_id=course.id,
+        title="T2",
+        description_markdown="",
+        visibility=Visibility.class_,
+        created_by=teacher.id,
+    )
+    db.add(assignment)
+    db.commit()
+
+    sub = Submission(
+        assignment_id=assignment.id,
+        course_id=course.id,
+        student_id=a.id,
+        status=SubmissionStatus.submitted,
         notes="entrega de ana",
     )
     db.add(sub)
     db.commit()
 
-    # Teacher evalúa
     resp = client.post(
         f"/api/v1/submissions/{sub.id}/evaluations",
         json={"score": 95, "comment_markdown": "¡excelente!", "rubric_scores": {}},
@@ -81,23 +113,60 @@ def test_student_cannot_read_others_evaluations(client: TestClient, db: Session)
     )
     assert mine.status_code == 200
     assert len(mine.json()) == 1
-    assert mine.json()[0]["score"] == "95.00" or float(mine.json()[0]["score"]) == 95.0
 
-    # Otra estudiante matriculada: 404 (assignment es private) o lista vacía
+    # Peer matriculado: la entrega sí es visible (class)…
+    detail = client.get(f"/api/v1/submissions/{sub.id}", headers=auth_headers(b))
+    assert detail.status_code == 200
+    assert detail.json()["notes"] == "entrega de ana"
+    # …pero jamás las evaluaciones
+    assert detail.json()["latest_evaluation"] is None
+    assert detail.json()["evaluations"] == []
+
     other = client.get(
         f"/api/v1/submissions/{sub.id}/evaluations",
         headers=auth_headers(b),
     )
-    assert other.status_code in (404, 200)
-    if other.status_code == 200:
-        assert other.json() == []
+    assert other.status_code == 200
+    assert other.json() == []
 
-    # Y en get submission, jamás score/comment de ajena
-    detail = client.get(f"/api/v1/submissions/{sub.id}", headers=auth_headers(b))
-    if detail.status_code == 200:
-        body = detail.json()
-        assert body.get("latest_evaluation") is None
-        assert body.get("evaluations") == []
+
+def test_student_cannot_read_submission_from_other_course(client: TestClient, db: Session) -> None:
+    """Aislamiento entre cursos: inscrito en A, una entrega del curso B → 404."""
+    ctx = _setup_two_students(db)
+    a: User = ctx["a"]
+    teacher: User = ctx["teacher"]
+
+    other_course = make_course(db, code="ISO1")
+    caro = make_student(db, name="Caro", username="caro")
+    enroll(db, other_course, caro, seat=next(iter(other_course.seats)))
+
+    assignment = Assignment(
+        course_id=other_course.id,
+        title="Deber del curso B",
+        description_markdown="",
+        visibility=Visibility.class_,
+        created_by=teacher.id,
+    )
+    db.add(assignment)
+    db.commit()
+
+    sub = Submission(
+        assignment_id=assignment.id,
+        course_id=other_course.id,
+        student_id=caro.id,
+        status=SubmissionStatus.submitted,
+        notes="visible solo en curso B",
+    )
+    db.add(sub)
+    db.commit()
+
+    # La dueña (inscrita en B) sí la ve: el 404 de abajo es por el curso, no por otra cosa
+    assert (
+        client.get(f"/api/v1/submissions/{sub.id}", headers=auth_headers(caro)).status_code == 200
+    )
+    # `a` está inscrita solo en PERM1 → 404
+    resp = client.get(f"/api/v1/submissions/{sub.id}", headers=auth_headers(a))
+    assert resp.status_code == 404
 
 
 def test_student_cannot_write_or_delete_others_submission(client: TestClient, db: Session) -> None:
@@ -297,9 +366,11 @@ def test_student_can_see_peer_submission_when_visibility_class(
     assert body["evaluations"] == []
 
 
-def test_student_login_and_must_change_pin_flow(client: TestClient, db: Session) -> None:
+def test_student_login_username_only_and_cannot_change_own_pin(
+    client: TestClient, db: Session
+) -> None:
     course = make_course(db, code="FLOW1")
-    student = make_student(db, name="Flow", username="flow", pin="000000", must_change=True)
+    student = make_student(db, name="Flow", username="flow", pin="000000")
     enroll(db, course, student, seat=next(iter(course.seats)))
 
     login = client.post(
@@ -308,40 +379,35 @@ def test_student_login_and_must_change_pin_flow(client: TestClient, db: Session)
     )
     assert login.status_code == 200
     tokens = login.json()
-    assert tokens["must_change_credentials"] is True
-
-    # Con must_change no puede usar endpoints normales
-    forbidden = client.get("/api/v1/courses", headers=auth_headers(student))
-    # auth_headers no usa must_change... usamos el access token real
+    # Fix 5: el refresh token nunca viaja en el body
+    assert "refresh_token" not in tokens
+    assert tokens["must_change_credentials"] is False
     headers = {"Authorization": f"Bearer {tokens['access_token']}"}
-    forbidden = client.get("/api/v1/courses", headers=headers)
-    assert forbidden.status_code == 403
 
-    # Cambio de PIN
+    # Acceso normal con el token
+    assert client.get("/api/v1/courses", headers=headers).status_code == 200
+
+    # El nombre público no sirve de identificador (solo username)
+    by_name = client.post(
+        "/api/v1/auth/login/student",
+        json={"course_code": "FLOW1", "identifier": "Flow", "pin": "000000"},
+    )
+    assert by_name.status_code == 401
+
+    # El student no puede cambiar su propio PIN: lo gestiona el admin/profesor
     change = client.patch(
         "/api/v1/auth/change-credentials",
         json={"current_secret": "000000", "new_secret": "999999"},
         headers=headers,
-        cookies={},
     )
-    # refresh cookie path — el body puede llevar refresh o usamos solo change
-    if change.status_code != 200:
-        # reintento enviando con cookie de refresh del login
-        change = client.patch(
-            "/api/v1/auth/change-credentials",
-            json={"current_secret": "000000", "new_secret": "999999"},
-            headers=headers,
-        )
-    assert change.status_code == 200, change.text
-    assert change.json()["must_change_credentials"] is False
+    assert change.status_code == 403
 
-    # Login con PIN nuevo
+    # El PIN original sigue intacto
     login2 = client.post(
         "/api/v1/auth/login/student",
-        json={"course_code": "FLOW1", "identifier": "flow", "pin": "999999"},
+        json={"course_code": "FLOW1", "identifier": "flow", "pin": "000000"},
     )
     assert login2.status_code == 200
-    assert login2.json()["must_change_credentials"] is False
 
 
 def test_staff_login_and_refresh_rotation(client: TestClient, db: Session) -> None:
@@ -351,12 +417,15 @@ def test_staff_login_and_refresh_rotation(client: TestClient, db: Session) -> No
         json={"email": "rot@aula.test", "password": "rotate-pass-1"},
     )
     assert login.status_code == 200
-    refresh1 = login.json()["refresh_token"]
+    # Fix 5: solo cookie httponly, sin refresh_token en el body
+    assert "refresh_token" not in login.json()
+    refresh1 = client.cookies.get("refresh_token")
+    assert refresh1
 
-    r2 = client.post("/api/v1/auth/refresh", json={"refresh_token": refresh1})
+    r2 = client.post("/api/v1/auth/refresh", json={})
     assert r2.status_code == 200
-    refresh2 = r2.json()["refresh_token"]
-    assert refresh2 != refresh1
+    refresh2 = client.cookies.get("refresh_token")
+    assert refresh2 and refresh2 != refresh1
 
     # El refresh viejo ya no sirve (rotación)
     reuse = client.post("/api/v1/auth/refresh", json={"refresh_token": refresh1})

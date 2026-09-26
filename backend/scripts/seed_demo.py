@@ -114,7 +114,7 @@ def seed_demo(db: Session | None = None) -> dict[str, Any]:
                 role=UserRole.student,
                 pin_hash=hash_secret(pin),
                 is_active=True,
-                must_change_credentials=True,
+                must_change_credentials=False,
             )
             session.add(student)
             session.flush()

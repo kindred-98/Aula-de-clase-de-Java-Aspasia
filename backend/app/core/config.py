@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
 
     cors_origins: str = "http://localhost:5173"
+    allowed_hosts: str = "localhost,127.0.0.1"
 
     database_url: str = "postgresql+psycopg://aula:aula@localhost:5432/aula"
     testing_database_url: str = "sqlite:///./test.db"
@@ -49,9 +50,24 @@ class Settings(BaseSettings):
             return value.strip()
         return value
 
+    @model_validator(mode="after")
+    def _check_production_secret(self) -> "Settings":
+        insecure = "dev-only-insecure-secret-change-me-32chars"
+        if self.environment == "production" and (
+            self.secret_key == insecure or len(self.secret_key) < 32
+        ):
+            raise ValueError(
+                "SECRET_KEY debe definirse explícitamente (>= 32 caracteres) en producción"
+            )
+        return self
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def allowed_host_list(self) -> list[str]:
+        return [host.strip() for host in self.allowed_hosts.split(",") if host.strip()]
 
     @property
     def max_upload_bytes(self) -> int:

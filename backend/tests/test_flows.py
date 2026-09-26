@@ -268,8 +268,10 @@ def test_submission_full_flow_with_file_and_evaluation(
         json={"email": teacher.email, "password": "teacher-secret-1"},
     )
     assert login.status_code == 200
-    rt = login.json()["refresh_token"]
-    out = client.post("/api/v1/auth/logout", json={"refresh_token": rt})
+    assert "refresh_token" not in login.json()
+    rt = client.cookies.get("refresh_token")
+    assert rt
+    out = client.post("/api/v1/auth/logout", json={})
     assert out.status_code == 204
     reuse = client.post("/api/v1/auth/refresh", json={"refresh_token": rt})
     assert reuse.status_code == 401
@@ -464,17 +466,16 @@ def test_submission_not_found_paths(client: TestClient, db: Session) -> None:
 
 
 def test_change_credentials_wrong_current(client: TestClient, db: Session) -> None:
-    course = make_course(db, code="CCR")
-    student = make_student(db, username="ccst", pin="111111", must_change=True)
-    enroll(db, course, student, seat=next(iter(course.seats)))
+    teacher = make_teacher(db, email="wrongpw@aula.test", password="correct-horse-1")
     login = client.post(
-        "/api/v1/auth/login/student",
-        json={"course_code": "CCR", "identifier": "ccst", "pin": "111111"},
+        "/api/v1/auth/login/staff",
+        json={"email": teacher.email, "password": "correct-horse-1"},
     )
+    assert login.status_code == 200
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     bad = client.patch(
         "/api/v1/auth/change-credentials",
-        json={"current_secret": "222222", "new_secret": "333333"},
+        json={"current_secret": "22222222", "new_secret": "33333333"},
         headers=headers,
     )
     assert bad.status_code == 400

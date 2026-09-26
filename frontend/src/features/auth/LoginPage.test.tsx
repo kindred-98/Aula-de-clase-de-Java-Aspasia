@@ -34,7 +34,6 @@ describe("LoginPage", () => {
       new Response(
         JSON.stringify({
           access_token: "a",
-          refresh_token: "r",
           must_change_credentials: false,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
